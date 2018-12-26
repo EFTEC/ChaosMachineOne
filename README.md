@@ -1,9 +1,19 @@
 # ChaosMachineOne for PHP
-A controlled random generator data for PHP. It doesn't chart visually, the objective is to generate values to store into the database (mysql)  
+A controlled random generator data for PHP. It doesn't chart visually, the 
+objective is to generate values to store into the database (mysql)  
+
+[![Packagist](https://img.shields.io/packagist/v/eftec/ChaosMachineOne.svg)](https://packagist.org/packages/eftec/chaosmachineone)
+[![Total Downloads](https://poser.pugx.org/eftec/chaosmachineone/downloads)](https://packagist.org/packages/eftec/chaosmachineone)
+[![Maintenance](https://img.shields.io/maintenance/yes/2018.svg)]()
+[![composer](https://img.shields.io/badge/composer-%3E1.6-blue.svg)]()
+[![php](https://img.shields.io/badge/php->5.6-green.svg)]()
+[![php](https://img.shields.io/badge/php-7.x-green.svg)]()
+[![CocoaPods](https://img.shields.io/badge/docs-70%25-yellow.svg)]()
 
 ## What is the objective?
 
-Sometimes we want to generate fake values for the database that are controlled and consistent. So, this library tries to add a order to chaos. 
+Sometimes we want to generate fake values for the database that are controlled and 
+consistent. So, this library tries to create an ordered chaos. 
 
 Let's say the next exercise.  We want to generate random values for a new system (sales)
 
@@ -14,7 +24,8 @@ If we generate random values, the chart would look like
 ![random](docs/random.jpg)
 
 
-Why? it is because they are random values.  So, they are right but they don't looks real because there is not a trend.
+Why is it so random? it is because they are random values.  So,
+they are right but they don't looks real because there is not a trend.
 
 Let's generate the same value with a sine (for example, let's say that there is a cycle of sales)
 
@@ -31,6 +42,69 @@ The chart has a trend but it is too predictable.  So, let's add all factors.
 
 While this chart is far from real, but it is not TOO RANDOM and it has a trend. 
 
+## fields
+
+> field($name,$type,$special='database',$initValue=0,$min=PHP_INT_MIN,$max=PHP_INT_MAX)
+
+fields are out values. They could be numeric, date and string.  
+
+* Fields could have speed and acceleration. However, if you change the value manually, then the speed and acceleration is ignored.  
+
+* "field.value=X"  it sets the value of the field.
+* "field.speed=X"  it sets the speed of the field.
+* "field.accel=X"  it sets the acceleraiton of the field. If the speed is set manually, then the acceleration is ignored.
+* "field.stop=X" it sets the speed and acceleration to zero, and sets the value to X.
+
+Examples:   
+> "set field.value=20" // it sets the value of the field to 20   
+> "set field.speed=3" // it sets the speed of the field by 3. The field increases the value every cycle by 3    
+> "set field.accel=1" // it sets the acceleration of the field by 1. The field increases the speed every cycle by 1    
+> "set field.value=30 and field.speed=1" // the value is always 30, no matter the speed    
+
+```
+->gen('when _index<40 then idtable.accel=1') // the acceleration is 1 until index=40
+->gen('when _index<60 then idtable.accel=-1') // the acceleration is -1 until index=60
+->gen('when _index<100 then idtable.accel=-1') // the acceleration is -1 until index=100
+```
+![accel](docs/accel.jpg)
+
+## gen
+
+It generates a value using the Minilang syntaxis.
+
+The syntaxis is as follow:  
+
+```
+when logic and/or logic2 and/or logic3 then setvalue1 , setvalue2 , setvalue3
+```
+
+### minilang
+
+* $var = it is php global variable.
+* field = it is an minilang variable.
+* * field.value it is the value of a column (if any)
+* _index = indicates the current index (current number of row)
+* 20 , 20.50 = its a fixed value
+* "text",'text' = it is fixed string value
+* fn() = its a function 
+
+Limits.
+* Parenthesis are now allowed (unless it is defines a function).
+* * > a1=(20+30) is not allowed however a1=20 , a1+30 is allowed
+* The syntax is divided in two parts, one of the logic (when) and other is the set (then)
+* Conditions are evaluated in order. If one condition is meet, then it stop other evaluations.
+* * > when a1=1 then b1=1
+* * > when a1<10 then b1=10 // if a1=1 then this expression is not evaluated.
+
+
+### Logic
+
+It sets the condition(s) separated by **and** or **or**
+
+> It is not allowed to use more than operator for logic.  a1=20+30 is not allowed.  
+
+
+
 ## Range Functions (numbers)
 
 Functions that generates a range of values
@@ -39,10 +113,17 @@ Functions that generates a range of values
 ### ramp($fromX, $toX, $fromY, $toY)
 
 It generates a ramp values (lineal values)
-> ->gen('when _index<200 then idtable.value=ramp(0,100,10,1000)')
+```
+->gen('when _index<200 then idtable.value=ramp(0,100,10,1000)')
+```
 
 ![ramp](docs/ramp.jpg)
 
+```
+->gen('when _index<200 then idtable.value=ramp(0,100,1000,10)')
+```
+
+![ramp inverse](docs/ramp2.jpg)
 
 ### log($startX,$startY,$scale=1)
 
@@ -73,17 +154,44 @@ It generates a sinuzoid values. The angle is calculated with the current index x
 
 ![sin10](docs/sin10.jpg)
 
-### atan($startX,$startY,$speed=1,$scale=1)
+### atan($centerX,$startY,$speed=1,$scale=1)
 
 It generates arc-tangent values
+
+```
+->gen('when _index<200 then idtable.value=atan(50,0,20,10)')
+```
+
+![atan](docs/atan.jpg)
 
 ### parabola($centerX,$startY,$scaleA=1,$scaleB=1,$scale=1)
 
 It generates a parabola. It is possible to invert the parabola by changing the scaleA by negative
 
+> ->gen('when _index<200 then idtable.value=parabola(50,0,1,1,1)')
+
+![parabola1](docs/parabola1.jpg)
+
+> ->gen('when _index<200 then idtable.value=parabola(50,0,-1,1,1)')
+
+![parabola2](docs/parabola2.jpg)
+
+> ->gen('when _index<200 then idtable.value=parabola(50,2500,-1,1,1)')
+
+![parabola3](docs/parabola3.jpg)
+
+
 ### bell($centerX, $startY, $sigma=1, $scaleY=1)
 
 It generates a bell values, sigma is the "wide" of the bell.
+
+> ->gen('when _index<=360 then idtable.value=bell(50,0,30,100)')  
+
+![bell30](docs/bell30.jpg)
+
+> ->gen('when _index<=360 then idtable.value=bell(50,0,30,100)')  
+
+![bell1](docs/bell1.jpg)
 
 ## Fixed functions (numbers)
 
@@ -107,9 +215,63 @@ It generates a random value by using different probabilities.
 
 It generates a random value from $from to $to.
 
-> random(1,10) // 1,2,3,4,5,6,7,8,9,10
-> random(1,10,2) // 1,3,5,7,9
+```
+random(1,10) // 1,2,3,4,5,6,7,8,9,10
+random(1,10,2) // 1,3,5,7,9
+```
 
 > ->gen('when _index<200 then idtable.value=random(-10,10,0.2)')
 
 ![random](docs/random.jpg)
+
+### field.speed=xxxx
+
+It sets the speed of the field.
+
+### field.accel=xxxx
+
+It sets  the acceleration of a field.
+
+### field.value=xxxx
+
+It sets the value of a field
+
+### field.getvalue
+
+It returns the value of a field
+
+### field.valueabs
+
+It transform the value of a field to absolute (always positive)
+
+### field.day , field.month , field.year, field.hour, field.minute, field.weekday
+
+It returns the current part of the date (day,month,year,hour,minute and weekday).  
+
+> It is used for field of the type datetime.
+> It is not for set, no matter the value.
+
+### field.stop=xxxx
+
+It sets or returns the value of a field, it also marks the speed and acceleration to zero.
+
+### field.add=xxxx
+
+It adds a value to a field.  If the field is of the type datetime, then you could add an "hour","minute" and "day"
+```
+field.add=20 // add 20 to the field
+field.add="5h" // adds 5 hours to the field. 5m = 5 minutes, 5d = 5 days
+```
+
+### field.skip=xxx
+
+It skips a value to the next value. It is used for date.
+
+```
+field.skip='day'  // it skips to the next day (it start at 00:00)
+field.skip='month'  // it skips to the next month (it start at the first day of the month 00:00)
+field.skip='monday' // (or the name of the day), it skips to the next monday (00:00 hours)
+field.skip='hour' // it skips to the next hour (minute 00)
+```
+
+

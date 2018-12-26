@@ -11,6 +11,7 @@ namespace eftec\chaosmachineone;
  * * now function allows parameters fnname(1,2,3)
  * * now set allows operators (+,-,*,/). set field=a1+20+40
  * @link https://github.com/EFTEC/StateMachineOne
+ * @license LGPL v3 (or commercial if it's licensed)
  */
 class MiniLang
 {
@@ -153,7 +154,12 @@ class MiniLang
 										}
 									} else {
 										// field
-										$this->addBinOper($first,$inSet,$inFunction, 'field', $v[1], null);
+										if (in_array($v[1], $this->specialCom)) {
+											$this->addBinOper($first,$inSet,$inFunction, 'special', $v[1], null);
+											$first = true;
+										} else {
+											$this->addBinOper($first,$inSet,$inFunction, 'field', $v[1], null);
+										}
 									}
 									break;
 							}
@@ -234,6 +240,7 @@ class MiniLang
 		foreach($this->logic[$idx] as $k=> $v) {
 			if($v[0]==='pair') {
 				if ($v[1]=='special') {
+					
 					if (count($v)>=7) {
 						return $caller->{$v[2]}($v[6]);
 					} else {
@@ -289,11 +296,11 @@ class MiniLang
 		} // for
 		return $r;
 	}
-	public function evalAllLogic(&$caller,$dictionary) {
+	public function evalAllLogic(&$caller,$dictionary,$stopOnFound=true) {
 		for($i=0; $i<=$this->langCounter; $i++) {
 			if ($this->evalLogic($caller,$dictionary,$i)) {
 				$this->evalSet($caller,$dictionary,$i);
-				break;
+				if ($stopOnFound) break;
 			}
 		}
 	}
@@ -309,9 +316,13 @@ class MiniLang
 			if($v[0]==='pair') {
 				$name=$v[2];
 				$ext=$v[3];
-				$op=$v[4];
+				$op=@$v[4];
 				//$field0=$this->getValue($v[1],$v[2],$v[3],$caller,$dictionary);
-				$field1 = $this->getValue($v[5], $v[6], $v[7], $caller, $dic);
+				if (count($v)>5) {
+					$field1 = $this->getValue($v[5], $v[6], $v[7], $caller, $dic);
+				} else {
+					$field1=null;
+				}
 				for($i=8;$i<count($v);$i+=4) {
 					switch ($v[$i]) {
 						case '+':
