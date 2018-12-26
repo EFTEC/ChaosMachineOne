@@ -4,7 +4,6 @@
 namespace eftec\chaosmachineone;
 
 
-use Composer\Installers\VanillaInstaller;
 
 /**
  * Class ChaosMachineOne
@@ -51,14 +50,14 @@ class ChaosMachineOne
 		$this->miniLang->separate($script);
 		return $this;
 	}
-	public function array($name,$value=[]) {
+	public function setArray($name, $value=[]) {
 		if(isset($this->arrays[$name])) {
 			trigger_error("arrays[$name] is already defined");
 		}
 		$this->arrays[$name]=$value;
 		return $this;
 	}
-	public function format($name,$value=[]) {
+	public function setFormat($name, $value=[]) {
 		if(isset($this->formats[$name])) {
 			trigger_error("formats[$name] is already defined");
 		}
@@ -298,7 +297,7 @@ class ChaosMachineOne
 		$this->pipeValue=null;
 	}
 
-	public function table($table, int $maxId)
+	public function table($table, $maxId)
 	{
 		$this->table=$table;
 		$this->maxId=$maxId;

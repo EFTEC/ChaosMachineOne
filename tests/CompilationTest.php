@@ -16,7 +16,7 @@ class CompilationTest extends AbstractStateMachineOneTestCase {
 		    ->field('idtest3','int','database',10,0,999)
 		    ->field('idtest4','int','database',10,0,999)
 		    ->field('texttest1','string','database','',0,999)
-		    ->array('testarray',['a','b','c'])
+		    ->setArray('testarray',['a','b','c'])
 		    ->gen('when _index<500 then idtest2.add=1 and idtest3.add=1')
 		    ->gen('when idtest3.getvalue<100 then idtest4.add=1')
 		    ->gen('when always then texttest1.value=randomarray("testarray")')
