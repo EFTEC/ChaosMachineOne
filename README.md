@@ -2,6 +2,7 @@
 A controlled random generator data for PHP. It doesn't chart visually, the 
 objective is to generate values to store into the database (mysql)  
 
+[![Build Status](https://travis-ci.org/EFTEC/ChaosMachineOne.svg?branch=master)](https://travis-ci.org/EFTEC/ChaosMachineOne)
 [![Packagist](https://img.shields.io/packagist/v/eftec/ChaosMachineOne.svg)](https://packagist.org/packages/eftec/chaosmachineone)
 [![Total Downloads](https://poser.pugx.org/eftec/chaosmachineone/downloads)](https://packagist.org/packages/eftec/chaosmachineone)
 [![Maintenance](https://img.shields.io/maintenance/yes/2018.svg)]()
