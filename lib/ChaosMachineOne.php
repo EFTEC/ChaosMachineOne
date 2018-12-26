@@ -135,7 +135,7 @@ class ChaosMachineOne
 		
 		}
 	}
-	public function field($name,$type,$special='database',$initValue=0,$min=PHP_INT_MIN,$max=PHP_INT_MAX) {
+	public function field($name,$type,$special='database',$initValue=0,$min=-2147483647,$max=2147483647) {
 		$this->pipeFieldName=$name;
 		if (strpos($type,'(')!==false) {
 			$x = explode('(', $type);
@@ -196,34 +196,34 @@ class ChaosMachineOne
 	public function value(ChaosField $field,$v2=null) {
 		$field->curValue=$v2;
 	}
-	public function getvalue(ChaosField $field,$v2=null) {
+	public function getvalue(ChaosField $field) {
 		return $field->curValue;
 	}
-	public function valueabs(ChaosField $field,$v2=null) {
+	public function valueabs(ChaosField $field) {
 		$field->curValue=abs($field->curValue);
 	}
-	public function year(ChaosField $field,$v2=null) {
+	public function year(ChaosField $field) {
 		return $this->datepart($field,'Y');
 	}
-	public function month(ChaosField $field,$v2=null) {
+	public function month(ChaosField $field) {
 		return $this->datepart($field,'m');
 	}
-	public function day(ChaosField $field,$v2=null) {
+	public function day(ChaosField $field) {
 		return $this->datepart($field,'d');
 	}
-	public function weekday(ChaosField $field,$v2=null) {
+	public function weekday(ChaosField $field) {
 		// 1= monday, 7=sunday
 		return $this->datepart($field,'N');
 	}
-	public function hour(ChaosField $field,$v2=null) {
+	public function hour(ChaosField $field) {
 		// hour (24 hours)
 		return $this->datepart($field,'H');
 	}
-	public function minute(ChaosField $field,$v2=null) {
+	public function minute(ChaosField $field) {
 		// hour (24 hours)
 		return $this->datepart($field,'i');
 	}
-	public function second(ChaosField $field,$v2=null) {
+	public function second(ChaosField $field) {
 		// hour (24 hours)
 		return $this->datepart($field,'s');
 	}
@@ -237,7 +237,6 @@ class ChaosMachineOne
 	 * @param string $v2=['day','hour','monday','tuesday','wednesday','thursday','friday','saturday','sunday','month'][$i]
 	 */
 	public function skip(ChaosField $field,$v2='day') {
-		$init=$field->curValue;
 		switch ($v2) {
 			case "day":
 				$curhour=$this->hour($field);

@@ -44,18 +44,18 @@ class ChaosField
 		$this->curValue=$curValue;
 		switch ($type) {
 			case 'int':
-				$this->statMin=PHP_INT_MAX;
-				$this->statMax=PHP_INT_MIN;
+				$this->statMin=2147483647;
+				$this->statMax=-2147483647;
 				$this->statSum=0;
 				break;
 			case 'decimal':
-				$this->statMin=PHP_FLOAT_MAX;
-				$this->statMax=PHP_FLOAT_MIN;
+				$this->statMin=2147483647;
+				$this->statMax=-2147483647;
 				$this->statSum=0;
 				break;
 			case 'date':
 			case 'datetime':
-				$this->statMin=PHP_INT_MAX;
+				$this->statMin=2147483647;
 				$this->statMax=0;
 				$this->statSum=0;
 				break;
