@@ -1,6 +1,7 @@
 <?php
 namespace eftec\chaosmachineone;
 
+use eftec\DaoOne;
 use eftec\minilang\MiniLang;
 
 /**
@@ -22,6 +23,8 @@ class ChaosMachineOne
 	var $miniLang;
 	
 	var $values=[];
+	/** @var DaoOne */
+	var $db=null;
 	
 	private $arrays=[];
 	private $formats=[];
@@ -42,6 +45,15 @@ class ChaosMachineOne
 	// special
 	public function always() {
 		return true;
+	}
+
+	/**
+	 * @param DaoOne $db
+	 * @return ChaosMachineOne
+	 */
+	public function setDb($db) {
+		$this->db=$db;
+		return $this;
 	}
 	
 	public function gen($script) {
@@ -77,7 +89,7 @@ class ChaosMachineOne
 						break;
 					case 'string':
 						$l=strlen($obj->curValue);
-						if ($l<$obj->min && $obj->min>0) $obj->curValue=$obj->min.str_repeat(' ',$obj->min-$l);
+						if ($l<$obj->min && $obj->min>0) $obj->curValue=$obj->curValue.str_repeat(' ',$obj->min-$l);
 						if ($l>$obj->max) $obj->curValue= $this->trimText($obj->curValue,$obj->max);
 						break;
 				}
@@ -132,7 +144,32 @@ class ChaosMachineOne
 			}
 		
 		}
+		return $this;
 	}
+	public function insert() {
+		if ($this->db===null) return $this;
+		for($i=0;$i<$this->maxId;$i++) {
+			$this->values['_index'] = $i;
+			$this->miniLang->evalAllLogic($this, $this->values, false);
+			$this->cleanAndCut();
+			$arr=[];
+			foreach($this->values as &$obj) {
+				if(is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField') {
+					$obj->reEval();
+					if ($obj->special=='database') {
+						if ($obj->type == 'datetime') {
+							$arr[$obj->name] = date('Y-m-d H:i:s', $obj->curValue);
+						} else {
+							$arr[$obj->name] = $obj->curValue;
+						}
+					}
+				}
+			}
+			$this->db->insert($this->table,$arr);
+		}
+		return $this;
+	}
+	
 	public function field($name,$type,$special='database',$initValue=0,$min=-2147483647,$max=2147483647) {
 		$this->pipeFieldName=$name;
 		if (strpos($type,'(')!==false) {
@@ -462,6 +499,11 @@ class ChaosMachineOne
 		$c=count($this->arrays[$matches[1]]);
 		$idx=rand(0,$c-1);
 		return $this->arrays[$matches[1]][$idx];
+	}
+	public function arrayIndex($nameArray)
+	{
+		$idx=$this->values['_index'];
+		return $this->arrays[$nameArray][$idx];
 	}
 	
 	public function random($from,$to,$jump=1) {
