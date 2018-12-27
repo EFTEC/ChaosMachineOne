@@ -54,6 +54,7 @@ try {
 }
 if($customers) {
 	$chaos = new ChaosMachineOne();
+	$chaos->debugMode=true;
 	$chaos->table('customers', 1000)
 		->setDb($db)
 		->field('idcustomer', 'int', 'identity', 0, 0, 1000)
@@ -65,7 +66,8 @@ if($customers) {
 		->setFormat('fullnameformat', ['{{namemale}} {{lastname}}', '{{namefemale}} {{lastname}}'])
 		->gen('when always set datecreation.speed=random(5000,86400)')
 		->gen('when always set name.value=randomformat("fullnameformat")')
-		->insert();
+		->insert()
+		->stat();
 		//->show(['name', 'datecreation']);
 }
 if($products) {
@@ -78,11 +80,12 @@ if($products) {
 		->setArray('productname', Products::$products)
 		->gen('when always set price.value=random(0.5,20,0.1)')
 		->gen('when always set name.value=arrayindex("productname")')
-		->insert();
+		->insert()
+		->stat();
 		//->show(['name', 'price']);
 	//->insert();
 }
-if($sales) {
+if($sales || 1==1 ) {
 	$countProducts=count(Products::$products);
 	$chaos = new ChaosMachineOne();
 	$chaos->table('sales', 5000)
@@ -97,7 +100,8 @@ if($sales) {
 		->gen('when date.hour>18 then date.skip="day" and date.add="8h"') // if night then we jump to the next day (8am)
 		->gen('when always then idproduct.value=random(1,$countProducts) 
 		and idcustomer.value=random(1,1000) and amount.value=random(1,10)')
-		
-		->insert();
+		->show(['idproduct','idcustomer','amount','date'])
+		//->insert()
+		->stat();
 		//->show(['idproduct','idcustomer','amount','date']);
 }

@@ -14,25 +14,30 @@ use eftec\minilang\MiniLang;
  */
 class ChaosMachineOne
 {
-	var $pipeFieldName=null;
-	var $pipeFieldType=null;
-	var $pipeFieldTypeSize=null;
-	var $pipeFieldSpecial=null;
-	var $pipeValue=null;
-	/** @var MiniLang */
-	var $miniLang;
-	
 	var $values=[];
+	
+	var $debugMode=false;
+	
+	private $pipeFieldName=null;
+	private $pipeFieldType=null;
+	private $pipeFieldTypeSize=null;
+	private $pipeFieldSpecial=null;
+	private $pipeValue=null;
+	/** @var MiniLang */
+	private $miniLang;
+	
+
 	/** @var DaoOne */
-	var $db=null;
+	private $db=null;
 	
 	private $arrays=[];
 	private $formats=[];
-	
-	var $table;
-	var $maxId;
+
+	private $table;
+	private $maxId;
 	
 	private $daysWeek=['','monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+	private $bodyLoad=false;
 
 	/**
 	 * ChaosMachineOne constructor.
@@ -116,13 +121,38 @@ class ChaosMachineOne
 			}
 		}
 	}
+	public function startBody() {
+		if ($this->bodyLoad) return;
+		$this->bodyLoad=true;
+		echo "<!doctype html>
+		<html lang='en'>
+		  <head>
+		    <meta charset='utf-8'>
+		    <meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
+		    <link rel='stylesheet' href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css' integrity='sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO' crossorigin='anonymous'>
+		    <title>Show table</title>
+		  </head>
+		  <body><div class='container-fluid>'><div class='row'><div class='col'>";
+	}
+	public function endBody() {
+		echo "</div></div></div></body></html>";	
+	}
 	public function show($cols) {
+		$this->startBody();
+		echo "<table class='table'>";
+		echo "<thead><tr>";
+		foreach($cols as $col) {
+			echo "<th>".$this->values[$col]->name."</th>";
+		}
+		echo "</tr></thead>";
+		echo "<tbody>";
 		for($i=0;$i<$this->maxId;$i++) {
 			$this->values['_index']=$i;
 			$this->miniLang->evalAllLogic($this, $this->values,false);
 			$this->cleanAndCut();
+			echo "<tr>";
 			foreach($cols as $col) {
-				echo $this->values[$col]->name.": ";
+				echo "<td>";
 				switch ($this->values[$col]->type) {
 					case 'datetime':
 						echo date('Y-m-d H:i:s l(N)', $this->values[$col]->curValue) . "<br>";
@@ -135,19 +165,27 @@ class ChaosMachineOne
 						echo $this->values[$col]->curValue . "<br>";
 						break;
 				}
-				//echo date('Y-m-d H:i:s l(N)',$this->values[$col]->curValue)."<br>";
-
-				/*echo $this->values['idtable']->curValue
-					.",speed:".$this->values['idtable']->curSpeed
-					.",accel:".$this->values['idtable']->curAccel."<br>";*/
+				echo "</td>";
 				$this->values[$col]->reEval();
 			}
+			echo "</tr>";
 		
 		}
+		echo "</tbody>";
+		echo "</table>";
 		return $this;
 	}
+
+	/**
+	 * Inserts the rows to the database.
+	 * @return $this
+	 * @throws \Exception
+	 */
 	public function insert() {
-		if ($this->db===null) return $this;
+		if ($this->db===null) {
+			$this->debug('WARNING: No database is set');
+			return $this;
+		}
 		for($i=0;$i<$this->maxId;$i++) {
 			$this->values['_index'] = $i;
 			$this->miniLang->evalAllLogic($this, $this->values, false);
@@ -165,9 +203,27 @@ class ChaosMachineOne
 					}
 				}
 			}
-			$this->db->insert($this->table,$arr);
+			$id=$this->db->insert($this->table,$arr);
+			$this->debug("Debug: Inserting #$id");
 		}
 		return $this;
+	}
+	public function stat() {
+		$this->startBody();
+		foreach($this->values as &$obj) {
+			if(is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField') {
+				echo "<hr>Stat <b>".$obj->name.'</b>:<br>';
+				echo "Min:".$obj->statMin."<br>";
+				echo "Max:".$obj->statMax."<br>";
+				echo "Sum:".$obj->statSum."<br>";
+				if($obj->statSum>0) {
+					echo "Avg:" . ($obj->statSum / $this->maxId) . "<br>";
+				}
+			}
+		}
+	}
+	public function debug($msg) {
+		if($this->debugMode) echo $msg."<br>";
 	}
 	
 	public function field($name,$type,$special='database',$initValue=0,$min=-2147483647,$max=2147483647) {
@@ -441,9 +497,8 @@ class ChaosMachineOne
 		$format=$this->formats[$formatName][$idx];
 		if($fieldName==null) {
 			return $this->parse($format);
-		} else {
-			//return $this->arrays[$formatName][$idx]->{$fieldName};
-		}
+		} 
+		return "";
 	}
 	public function randomtext($startLorem='Lorem ipsum dolor',$arrayName='',$paragraph=false,$nWordMin=20,$nWordMax=40) {
 
