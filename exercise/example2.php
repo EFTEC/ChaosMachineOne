@@ -1,11 +1,10 @@
 <?php
 
 use eftec\chaosmachineone\ChaosMachineOne;
-use eftec\chaosmachineone\MiniLang;
 
-include "../lib/ChaosMachineOne.php";
-include "../lib/ChaosField.php";      
-include "../lib/MiniLang.php";
+
+use eftec\minilang\MiniLang;
+include "../vendor/autoload.php";
 
 $chaos=new ChaosMachineOne();
 $chaos->values['_index']=100;

@@ -1,15 +1,13 @@
 <?php
-
-
 namespace eftec\chaosmachineone;
 
-
+use eftec\minilang\MiniLang;
 
 /**
  * Class ChaosMachineOne
  * @package eftec\chaosmachineone
  * @author   Jorge Patricio Castro Castillo <jcastro arroba eftec dot cl>
- * @version 1.0 2018-12-26
+ * @version 1.1 2018-12-26
  * @link https://github.com/EFTEC/ChaosMachineOne
  * @license LGPL v3 (or commercial if it's licensed)
  */

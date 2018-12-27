@@ -25,10 +25,10 @@ If we generate random values, the chart would look like
 ![random](docs/random.jpg)
 
 
-Why is it so random? it is because they are random values.  So,
-they are right but they don't looks real because there is not a trend.
+Why is it so random? it is because they are random values (doh).  So,
+they are right but they don't looks real because there is not a trend or a natural flow of information, it is just static noise.
 
-Let's generate the same value with a sine (for example, let's say that there is a cycle of sales)
+Then, let's generate the same value with a sine (for example, let's say that there is a cycle of sales)
 
 > ->gen('when _index<200 then idtable.add=sin(0,0,10,30)')
 
@@ -276,3 +276,6 @@ field.skip='hour' // it skips to the next hour (minute 00)
 ```
 
 
+## version
+1.1 Now Minilib is a external library   
+1.0 First open source version   

@@ -1,7 +1,8 @@
 <?php
 
 use eftec\chaosmachineone\ChaosMachineOne;
-use eftec\chaosmachineone\MiniLang;
+use eftec\minilang\MiniLang;
+include "../vendor/autoload.php";
 
 class ServiceClass {
 	function example($field=null) {
@@ -19,8 +20,8 @@ function make_seed()
 srand(make_seed());
 $randval = rand();
 
-include "../lib/ChaosMachineOne.php";
-include "../lib/MiniLang.php";
+
+
 
 $x1='when a1=a2 and $b2=c3 and c2.field!=40 then d2()="123" , $d2.fff="123" , d2()=\'123\'';
 $x1='when $g1=a2';
