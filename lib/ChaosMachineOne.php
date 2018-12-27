@@ -394,8 +394,22 @@ class ChaosMachineOne
 		return $this;
 	}
 	#region Range functions
+
+	/**
+	 * It returns the current timestamp.
+	 * @return int
+	 */
 	public function now() {
 		return time();
+	}
+
+	/**
+	 * It converts a string to a timestamp.
+	 * @param $dateTxt
+	 * @return false|int
+	 */
+	public function createDate($dateTxt) {
+		return strtotime($dateTxt);
 	}
 	
 	public function ramp($fromX, $toX, $fromY, $toY) {
