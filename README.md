@@ -212,7 +212,7 @@ It generates a random value by using different probabilities.
 
 ![randomprop](docs/randomprop.jpg)
 
-### random($from,$to,$jump=1)
+### random($from,$to,$jump=1,$prob0=null,$prob1=null,$prob2=null)
 
 It generates a random value from $from to $to.
 
@@ -224,6 +224,30 @@ random(1,10,2) // 1,3,5,7,9
 > ->gen('when _index<200 then idtable.value=random(-10,10,0.2)')
 
 ![random](docs/random.jpg)
+
+
+Optionally, you could add a probability for each segment. 
+
+> random(0,100,1,10,20,70)
+
+* There is a 10% probability the random value is between 0 and 33
+* There is a 20% probability the random value is between 34 and 66
+* There is a 70% probabitity the random value is between 67 to 100
+
+> idtable.value=random(0,200,1,80,10,10)
+
+![random trend lower](docs/random801010.jpg)
+
+> idtable.value=random(0,200,1,10,80,10)
+
+![random trend middle](docs/random108010.jpg)
+
+> idtable.value=random(0,200,1,10,10,80)
+
+![random trend higher](docs/random101080.jpg)
+
+
+
 
 ### field.speed=xxxx
 
@@ -273,6 +297,57 @@ field.skip='day'  // it skips to the next day (it start at 00:00)
 field.skip='month'  // it skips to the next month (it start at the first day of the month 00:00)
 field.skip='monday' // (or the name of the day), it skips to the next monday (00:00 hours)
 field.skip='hour' // it skips to the next hour (minute 00)
+```
+
+
+## Arrays and texts
+
+### ->setArray('arrayname',[])
+
+It sets an array.  If the array is associative, then the value is the probability of selection.
+
+```
+->setArray('arrayname',['a','b','c']) // it sets an array with 3 values with the same chances.
+```
+
+```
+->setArray('arrayname',['a'=>80,'b'=>10,'c'=>10]) // it sets an array with 3 values with the changes of a(80%),b(10%) and c(10%)
+```
+
+### ->setFormat('formatName',[])
+
+It sets a format (template) to merge different arrays.  The arrays are marked as {{name-of-the-array}}
+
+```
+->setFormat('maleNameFormats',['{{namearr}} {{lastnamearr}}','Dr.{{namearr}} {{lastnamearr'])
+```
+
+### randomarray("arrayname",'field'=null)
+
+it returns a random row inside of the array declared with setArray(). If the array is associative then it returns a value according it's chance.
+
+If the array is a list of objects, then it returns the value of the field.
+
+```
+->gen('when always set name.value=randomarray("arrayname")')
+```
+
+### randomtext($starting,$arrayName,$paragraph,$wordMinimum,$wordMaximum)
+
+It generates a random text by using the array with name $arrayName.  The text could starts with a default text.
+
+If $paragraph is not 0, then it could generates paragraph (line carriage)
+
+```
+->gen('when always then text.value=randomtext("Lorem ipsum dolor","loremIpsumArray",1,4,30)')
+```
+
+### randomformat($nameFormat)
+
+It generates a random text using a mixes of format and different arrays.
+
+```
+->gen('when always set fullname.value=randomformat("nameFormat")')
 ```
 
 

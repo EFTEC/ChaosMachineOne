@@ -24,6 +24,7 @@ $chaos->table('table',1000)
 	->field('name','string','database','',0,200)
 	->field('fullname','string','database','',0,200)
 	->field('text','string','database','',0,40)
+	->field('prefix','string','database','',0,40)
 	->field('sex','int','local',0,0,1)
 	->setArray('firstNameMale',PersonContainer::$firstNameMale)
 	->setArray('lastName',PersonContainer::$lastName)
@@ -32,7 +33,7 @@ $chaos->table('table',1000)
 	->setArray('firstNameFemale',PersonContainer::$firstNameFemale)
 	->setArray('titleFemale',PersonContainer::$titleFemale)
 	->setArray('loremIpsum',PersonContainer::$loremIpsum)
-	
+	->setArray('prefixarray',[''=>70,'Dr.'=>10,'Phd.'=>20]) //70% change of no prefix, 10% of Dr. and 20% of PhD
 	->setFormat('maleNameFormats',PersonContainer::$maleNameFormats)
 	->setFormat('femaleNameFormats',PersonContainer::$femaleNameFormats)
 	
@@ -41,6 +42,7 @@ $chaos->table('table',1000)
 	->gen('when sex=0 set fullname.value=randomformat("maleNameFormats")')
 	->gen('when sex=1 set name.value=randomarray("firstNameFemale")')
 	->gen('when sex=1 set fullname.value=randomformat("femaleNameFormats")')
+	->gen('when always set prefix.value=randomarray("prefixarray")')
 	->gen('when always then text.value=randomtext("Lorem ipsum dolor","loremIpsum",1,4,30)')
-	->show(['name','fullname','text']);
+	->show(['name','fullname','text','prefix']);
 	

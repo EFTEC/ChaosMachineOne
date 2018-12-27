@@ -31,6 +31,7 @@ class ChaosMachineOne
 	private $db=null;
 	
 	private $arrays=[];
+	private $arraysProportional=[];
 	private $formats=[];
 
 	private $table;
@@ -66,10 +67,27 @@ class ChaosMachineOne
 		return $this;
 	}
 	public function setArray($name, $value=[]) {
-		if(isset($this->arrays[$name])) {
-			trigger_error("arrays[$name] is already defined");
+		reset($value);
+		$first_key = key($value);
+		if(is_numeric($first_key)) {
+			if (isset($this->arrays[$name])) {
+				trigger_error("arrays[$name] is already defined");
+			}
+			$this->arrays[$name] = $value;
+			$this->arraysProportional[$name] = null;
+		} else {
+			//it's a associative array. The value is the proportion
+			//[a=>10,b=>20,c=>30] => [a,b,c] [10,30,60] (0..9=a,10..29=b,30..60=c)
+			$this->arraysProportional[$name]=[];
+			$this->arrays[$name]=[];
+			$sum=0;
+			foreach($value as $k=>$v) {
+				$sum+=$v;
+				$this->arrays[$name][]=$k;
+				$this->arraysProportional[$name][]=$sum;
+			}
+
 		}
-		$this->arrays[$name]=$value;
 		return $this;
 	}
 	public function setFormat($name, $value=[]) {
@@ -497,9 +515,26 @@ class ChaosMachineOne
 		return $args[0];
 	}
 	public function randomarray($arrayName,$fieldName=null) {
-		$c=count($this->arrays[$arrayName]);
-		$idx=rand(0,$c-1);
-		if($fieldName==null) {
+		if (!isset($this->arrays[$arrayName])) {
+			trigger_error("Array [$arrayName] not defined");
+		}
+		if ($this->arraysProportional[$arrayName]!=null) {
+			$ap=$this->arraysProportional[$arrayName];	
+			$max=end($ap);
+			$idPos=rand(0,$max);
+			$idx=0;
+			foreach($ap as $k=>$v) {
+				
+				if($idPos<$v) {
+					$idx=$k;
+					break;
+				}
+			}
+		} else {
+			$c = count($this->arrays[$arrayName]);
+			$idx = rand(0, $c - 1);
+		}
+		if ($fieldName == null) {
 			return $this->arrays[$arrayName][$idx];
 		} else {
 			return $this->arrays[$arrayName][$idx]->{$fieldName};
@@ -513,6 +548,14 @@ class ChaosMachineOne
 			return $this->parse($format);
 		} 
 		return "";
+	}
+	public function parse($string)
+	{
+		return preg_replace_callback('/\{\{\s?(\w+)\s?\}\}/u', array($this, 'callRandomArray'), $string);
+	}
+	protected function callRandomArray($matches)
+	{
+		return $this->randomarray($matches[1]);
 	}
 	public function randomtext($startLorem='Lorem ipsum dolor',$arrayName='',$paragraph=false,$nWordMin=20,$nWordMax=40) {
 
@@ -558,31 +601,32 @@ class ChaosMachineOne
 
 	}
 
-	public function parse($string)
-	{
-		return preg_replace_callback('/\{\{\s?(\w+)\s?\}\}/u', array($this, 'callRandomArray'), $string);
-	}
 
-	protected function callRandomArray($matches)
-	{
-		$c=count($this->arrays[$matches[1]]);
-		$idx=rand(0,$c-1);
-		return $this->arrays[$matches[1]][$idx];
-	}
+
+
 	public function arrayIndex($nameArray)
 	{
 		$idx=$this->values['_index'];
 		return $this->arrays[$nameArray][$idx];
 	}
 	
-	public function random($from,$to,$jump=1) {
+	public function random($from,$to,$jump=1,$prob0=null,$prob1=null,$prob2=null) {
 		$r='';
 		switch ($this->pipeFieldType) {
 			case '':
 			case "datetime":
 			case 'int':
 			case 'decimal':
-				$r=rand($from/$jump,$to/$jump)*$jump;
+				$segment=$this->getRandomSegment($prob0,$prob1,$prob2);
+				if($segment===null) {
+					$r=rand($from/$jump,$to/$jump)*$jump;
+				} else {
+					$delta=($to-$from)/3; // 12-24 12(delta=4) = 0+12..3+12 ,4+12..7+12,8+12..12+12
+					$init=$segment*$delta +$from;
+					$end=($segment+1)*$delta-1 +$from;
+					$r=rand($init/$jump,$end/$jump)*$jump;
+				}
+				
 				$this->pipeValue+=$r;
 				break;
 			default:
@@ -591,6 +635,13 @@ class ChaosMachineOne
 		
 		return $r;
 	} 
+	private function getRandomSegment($prob0=null,$prob1=null,$prob2=null) {
+		if($prob0===null) return null;
+		$segment=rand(0,$prob0+$prob1+$prob2);
+		if($segment<=$prob0) return 0;
+		if($segment<=$prob0+$prob1) return 1;
+		return 2;
+	}
 	
 	#endregion
 	
