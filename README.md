@@ -364,16 +364,16 @@ It sets an array.  If the array is associative, then the value is the probabilit
 ### ->setFormat('formatName',[])
 
 It sets a format (template) to merge different arrays.  
-The arrays are marked as {{name-of-the-array}}
+The arrays are marked as {{name-of-the-array}}. If the array is not defined then it returns the value of a field.  
 
 If the array is associative then it returns a value according it's probability.
 
 ```
-->setFormat('maleNameFormats',['{{namearr}} {{lastnamearr}}','Dr.{{namearr}} {{lastnamearr'])
+->setFormat('maleNameFormats',['{{namearr}} {{lastnamearr}}','Dr.{{namearr}} {{lastnamearr}}'])
 ```
 
 ```
-->setFormat('maleNameFormats',['{{namearr}} {{lastnamearr}}'=>80,'Dr.{{namearr}} {{lastnamearr'=>20]) //probability of 80% and 20%
+->setFormat('maleNameFormats',['{{namearr}} {{lastnamearr}}'=>80,'Dr.{{namearr}} {{lastnamearr}}'=>20]) //probability of 80% and 20%
 ```
 
 ### randomarray("arrayname",'field'=null)
@@ -385,6 +385,14 @@ If the array is a list of objects, then it returns the value of the field.
 ```
 ->gen('when always set name.value=randomarray("arrayname")')
 ```
+### randomformat($nameFormat)
+
+It generates a random text using a mixes of format and different arrays.
+
+```
+->gen('when always set fullname.value=randomformat("nameFormat")')
+```
+
 
 ### randomtext($starting,$arrayName,$paragraph,$wordMinimum,$wordMaximum)
 
@@ -412,14 +420,6 @@ It generates a text based on a mask
 > randommask("##-00 uu ll \0 - oo (a)","lastName") // where lastName is an array
 
 
-
-### randomformat($nameFormat)
-
-It generates a random text using a mixes of format and different arrays.
-
-```
-->gen('when always set fullname.value=randomformat("nameFormat")')
-```
 
 
 ## version

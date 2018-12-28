@@ -630,7 +630,11 @@ class ChaosMachineOne
 	}
 	protected function callRandomArray($matches)
 	{
-		return $this->randomarray($matches[1]);
+		if(!isset($this->arrays[$matches[1]])) {
+			return $this->randomarray($matches[1]);
+		} else {
+			return $this->getDictionary($matches[1])->curValue;
+		}
 	}
 	public function randomtext($startLorem='Lorem ipsum dolor',$arrayName='',$paragraph=false,$nWordMin=20,$nWordMax=40) {
 		$array=$this->arrays[$arrayName];
