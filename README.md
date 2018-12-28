@@ -11,6 +11,43 @@ objective is to generate values to store into the database (mysql)
 [![php](https://img.shields.io/badge/php-7.x-green.svg)]()
 [![CocoaPods](https://img.shields.io/badge/docs-70%25-yellow.svg)]()
 
+- [ChaosMachineOne for PHP](#chaosmachineone-for-php)
+  * [What is the objective?](#what-is-the-objective-)
+  * [fields](#fields)
+  * [gen](#gen)
+    + [minilang](#minilang)
+    + [Logic](#logic)
+  * [Range Functions (numbers)](#range-functions--numbers-)
+    + [ramp($fromX, $toX, $fromY, $toY)](#ramp--fromx---tox---fromy---toy-)
+    + [log($startX,$startY,$scale=1)](#log--startx--starty--scale-1-)
+    + [exp($startX,$startY,$scale=1)](#exp--startx--starty--scale-1-)
+    + [sin($startX,$startY,$speed=1,$scale=1)](#sin--startx--starty--speed-1--scale-1-)
+    + [atan($centerX,$startY,$speed=1,$scale=1)](#atan--centerx--starty--speed-1--scale-1-)
+    + [parabola($centerX,$startY,$scaleA=1,$scaleB=1,$scale=1)](#parabola--centerx--starty--scalea-1--scaleb-1--scale-1-)
+    + [bell($centerX, $startY, $sigma=1, $scaleY=1)](#bell--centerx---starty---sigma-1---scaley-1-)
+  * [Fixed functions (numbers)](#fixed-functions--numbers-)
+    + [randomprop(...$args)](#randomprop--args-)
+    + [random($from,$to,$jump=1,$prob0=null,$prob1=null,$prob2=null)](#random--from--to--jump-1--prob0-null--prob1-null--prob2-null-)
+    + [field.speed=xxxx](#fieldspeed-xxxx)
+    + [field.accel=xxxx](#fieldaccel-xxxx)
+    + [field.value=xxxx](#fieldvalue-xxxx)
+    + [field.getvalue](#fieldgetvalue)
+    + [field.valueabs](#fieldvalueabs)
+    + [field.day , field.month , field.year, field.hour, field.minute, field.weekday](#fieldday---fieldmonth---fieldyear--fieldhour--fieldminute--fieldweekday)
+    + [field.stop=xxxx](#fieldstop-xxxx)
+    + [field.add=xxxx](#fieldadd-xxxx)
+    + [field.skip=xxx](#fieldskip-xxx)
+  * [Arrays and texts](#arrays-and-texts)
+    + [->setArray('arrayname',[])](#--setarray--arrayname-----)
+    + [->setFormat('formatName',[])](#--setformat--formatname-----)
+    + [randomarray("arrayname",'field'=null)](#randomarray--arrayname---field--null-)
+    + [randomtext($starting,$arrayName,$paragraph,$wordMinimum,$wordMaximum)](#randomtext--starting--arrayname--paragraph--wordminimum--wordmaximum-)
+    + [randomformat($nameFormat)](#randomformat--nameformat-)
+  * [version](#version)
+
+
+
+
 ## What is the objective?
 
 Sometimes we want to generate fake values for the database that are controlled and 
