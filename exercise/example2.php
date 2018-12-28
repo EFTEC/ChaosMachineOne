@@ -7,7 +7,7 @@ use eftec\minilang\MiniLang;
 include "../vendor/autoload.php";
 
 $chaos=new ChaosMachineOne();
-$chaos->values['_index']=100;
+$chaos->setDictionary('_index',100);
                                    
 
 

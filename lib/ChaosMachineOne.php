@@ -1,23 +1,19 @@
 <?php
 namespace eftec\chaosmachineone;
-
 use eftec\DaoOne;
 use eftec\minilang\MiniLang;
-
 /**
  * Class ChaosMachineOne
  * @package eftec\chaosmachineone
  * @author   Jorge Patricio Castro Castillo <jcastro arroba eftec dot cl>
- * @version 1.1 2018-12-26
+ * @version 1.2 2018-12-28
  * @link https://github.com/EFTEC/ChaosMachineOne
  * @license LGPL v3 (or commercial if it's licensed)
  */
 class ChaosMachineOne
 {
-	var $values=[];
-	
+	private $dictionary=[];
 	var $debugMode=false;
-	
 	private $pipeFieldName=null;
 	private $pipeFieldType=null;
 	private $pipeFieldTypeSize=null;
@@ -25,21 +21,16 @@ class ChaosMachineOne
 	private $pipeValue=null;
 	/** @var MiniLang */
 	private $miniLang;
-	
-
 	/** @var DaoOne */
 	private $db=null;
-	
 	private $arrays=[];
 	private $arraysProportional=[];
 	private $formats=[];
-
+	private $formatsProportional=[];
 	private $table;
 	private $maxId;
-	
 	private $daysWeek=['','monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 	private $bodyLoad=false;
-
 	/**
 	 * ChaosMachineOne constructor.
 	 */
@@ -54,6 +45,27 @@ class ChaosMachineOne
 	}
 
 	/**
+	 * @param string $index
+	 * @return ChaosField|mixed
+	 */
+	public function getDictionary($index)
+	{
+		return $this->dictionary[$index];
+	}
+
+	/**
+	 * @param string $index
+	 * @param mixed|ChaosField $values
+	 * @return ChaosMachineOne
+	 */
+	public function setDictionary($index, $values)
+	{
+		$this->dictionary[$index] = $values;
+		return $this;
+	}
+	
+	
+	/**
 	 * @param DaoOne $db
 	 * @return ChaosMachineOne
 	 */
@@ -61,7 +73,6 @@ class ChaosMachineOne
 		$this->db=$db;
 		return $this;
 	}
-	
 	public function gen($script) {
 		$this->miniLang->separate($script);
 		return $this;
@@ -86,19 +97,32 @@ class ChaosMachineOne
 				$this->arrays[$name][]=$k;
 				$this->arraysProportional[$name][]=$sum;
 			}
-
 		}
 		return $this;
 	}
 	public function setFormat($name, $value=[]) {
-		if(isset($this->formats[$name])) {
-			trigger_error("formats[$name] is already defined");
+		reset($value);
+		$first_key = key($value);
+		if(is_numeric($first_key)) {
+			if (isset($this->formats[$name])) {
+				trigger_error("formats[$name] is already defined");
+			}
+			$this->formats[$name] = $value;
+			$this->formatsProportional[$name] = null;
+		} else {
+			$this->formatsProportional[$name]=[];
+			$this->formats[$name]=[];
+			$sum=0;
+			foreach($value as $k=>$v) {
+				$sum+=$v;
+				$this->formats[$name][]=$k;
+				$this->formatsProportional[$name][]=$sum;
+			}
 		}
-		$this->formats[$name]=$value;
 		return $this;
 	}
 	public function cleanAndCut() {
-		foreach($this->values as &$obj) {
+		foreach($this->dictionary as &$obj) {
 			if(is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField') {
 				switch ($obj->type) {
 					case 'int':
@@ -129,10 +153,10 @@ class ChaosMachineOne
 	}
 	public function run() {
 		for($i=0;$i<$this->maxId;$i++) {
-			$this->values['_index'] = $i;
-			$this->miniLang->evalAllLogic($this, $this->values, false);
+			$this->dictionary['_index'] = $i;
+			$this->miniLang->evalAllLogic($this, $this->dictionary, false);
 			$this->cleanAndCut();
-			foreach($this->values as &$obj) {
+			foreach($this->dictionary as &$obj) {
 				if(is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField') {
 					$obj->reEval();
 				}
@@ -153,47 +177,45 @@ class ChaosMachineOne
 		  <body><div class='container-fluid>'><div class='row'><div class='col'>";
 	}
 	public function endBody() {
-		echo "</div></div></div></body></html>";	
+		echo "</div></div></div></body></html>";
 	}
 	public function show($cols) {
 		$this->startBody();
 		echo "<table class='table'>";
 		echo "<thead><tr>";
 		foreach($cols as $col) {
-			echo "<th>".$this->values[$col]->name."</th>";
+			echo "<th>".$this->dictionary[$col]->name."</th>";
 		}
 		echo "</tr></thead>";
 		echo "<tbody>";
 		for($i=0;$i<$this->maxId;$i++) {
-			$this->values['_index']=$i;
-			$this->miniLang->evalAllLogic($this, $this->values,false);
+			$this->dictionary['_index']=$i;
+			$this->miniLang->evalAllLogic($this, $this->dictionary,false);
 			$this->cleanAndCut();
-			echo "<tr>";
+			echo "<tr>\n";
 			foreach($cols as $col) {
 				echo "<td>";
-				switch ($this->values[$col]->type) {
+				switch ($this->dictionary[$col]->type) {
 					case 'datetime':
-						echo date('Y-m-d H:i:s l(N)', $this->values[$col]->curValue) . "<br>";
+						echo date('Y-m-d H:i:s l(N)', $this->dictionary[$col]->curValue) . "<br>";
 						break;
 					case 'int':
 					case 'decimal':
-						echo $this->values[$col]->curValue . "<br>";
+						echo $this->dictionary[$col]->curValue . "<br>";
 						break;
 					case 'string':
-						echo $this->values[$col]->curValue . "<br>";
+						echo $this->dictionary[$col]->curValue . "<br>";
 						break;
 				}
-				echo "</td>";
-				$this->values[$col]->reEval();
+				echo "</td>\n";
+				$this->dictionary[$col]->reEval();
 			}
-			echo "</tr>";
-		
+			echo "</tr>\n";
 		}
-		echo "</tbody>";
-		echo "</table>";
+		echo "</tbody>\n";
+		echo "</table>\n";
 		return $this;
 	}
-
 	/**
 	 * Inserts the rows to the database.
 	 * @return $this
@@ -205,11 +227,11 @@ class ChaosMachineOne
 			return $this;
 		}
 		for($i=0;$i<$this->maxId;$i++) {
-			$this->values['_index'] = $i;
-			$this->miniLang->evalAllLogic($this, $this->values, false);
+			$this->dictionary['_index'] = $i;
+			$this->miniLang->evalAllLogic($this, $this->dictionary, false);
 			$this->cleanAndCut();
 			$arr=[];
-			foreach($this->values as &$obj) {
+			foreach($this->dictionary as &$obj) {
 				if(is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField') {
 					$obj->reEval();
 					if ($obj->special=='database') {
@@ -228,7 +250,7 @@ class ChaosMachineOne
 	}
 	public function stat() {
 		$this->startBody();
-		foreach($this->values as &$obj) {
+		foreach($this->dictionary as &$obj) {
 			if(is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField') {
 				echo "<hr>Stat <b>".$obj->name.'</b>:<br>';
 				echo "Min:".$obj->statMin."<br>";
@@ -243,7 +265,6 @@ class ChaosMachineOne
 	public function debug($msg) {
 		if($this->debugMode) echo $msg."<br>";
 	}
-	
 	public function field($name,$type,$special='database',$initValue=0,$min=-2147483647,$max=2147483647) {
 		$this->pipeFieldName=$name;
 		if (strpos($type,'(')!==false) {
@@ -252,21 +273,18 @@ class ChaosMachineOne
 			$this->pipeFieldTypeSize = substr($x[1], 0, -1);
 		} else {
 			$this->pipeFieldType=$type;
-
 			$this->pipeFieldTypeSize=0;
 		}
 		$this->pipeFieldSpecial=$special;
-		$this->values[$name]=new ChaosField($name
+		$this->dictionary[$name]=new ChaosField($name
 			,$this->pipeFieldType
 			,$this->pipeFieldTypeSize
 			,$special
 			,$initValue);
-		$this->values[$name]->min=$min;
-		$this->values[$name]->max=$max;
+		$this->dictionary[$name]->min=$min;
+		$this->dictionary[$name]->max=$max;
 		return $this;
 	}
-
-
 	public function speed(ChaosField $field,$v2=null) {
 		$field->curSpeed=$v2;
 	}
@@ -297,7 +315,14 @@ class ChaosMachineOne
 			}
 			return;
 		}
-		$field->curValue+=$v2;
+		if ($field->type=='string') {
+			$field->curValue .= $v2;
+		} else {
+			$field->curValue += $v2;
+		}
+	}
+	public function concat(ChaosField $field,$v2=null) {
+		$field->curValue .= $v2;
 	}
 	public function plus(ChaosField $field,$v2=null) {
 		$this->add($field,$v2);
@@ -340,7 +365,6 @@ class ChaosMachineOne
 		//Y-m-d H:i:s
 		return intval(date($v2,$field->curValue));
 	}
-
 	/**
 	 * @param ChaosField $field
 	 * @param string $v2=['day','hour','monday','tuesday','wednesday','thursday','friday','saturday','sunday','month'][$i]
@@ -378,9 +402,7 @@ class ChaosMachineOne
 			case "friday":
 			case "saturday":
 			case "sunday":
-				
 				$p=array_search($v2,$this->daysWeek); //1 monday
-
 				$curhour=$this->hour($field);
 				$curhour=($curhour==0)?24:$curhour;
 				$field->curValue+=(24-$curhour)*3600 - $this->minute($field)*60 - $this->second($field); // we added the missing hours and we are close to midnight.
@@ -396,7 +418,6 @@ class ChaosMachineOne
 				break;
 		}
 	}
-
 	public function reset() {
 		$this->pipeFieldName=null;
 		$this->pipeFieldType=null;
@@ -404,7 +425,6 @@ class ChaosMachineOne
 		$this->pipeFieldSpecial=null;
 		$this->pipeValue=null;
 	}
-
 	public function table($table, $maxId)
 	{
 		$this->table=$table;
@@ -412,7 +432,6 @@ class ChaosMachineOne
 		return $this;
 	}
 	#region Range functions
-
 	/**
 	 * It returns the current timestamp.
 	 * @return int
@@ -420,7 +439,6 @@ class ChaosMachineOne
 	public function now() {
 		return time();
 	}
-
 	/**
 	 * It converts a string to a timestamp.
 	 * @param $dateTxt
@@ -429,69 +447,111 @@ class ChaosMachineOne
 	public function createDate($dateTxt) {
 		return strtotime($dateTxt);
 	}
-	
 	public function ramp($fromX, $toX, $fromY, $toY) {
 		$deltaX=$toX-$fromX; // 0 100 = 100
 		$deltaY=$toY-$fromY; // 0 10 = 10
-		$idx=$this->values['_index']; // 10
+		$idx=$this->dictionary['_index']; // 10
 		$idxDelta=$idx-$fromX; // 10-0 = 10
 		$value=($deltaY/$deltaX) *$idxDelta + $fromY; // 10/100*10 = 1 200/990 x 100
 		return $value;
 	}
 	public function log($startX,$startY,$scale=1) {
-		
-		$idx=$this->values['_index']; // 10
+		$idx=$this->dictionary['_index']; // 10
 		$idxDelta=$idx-$startX; // 10-0 = 10
 		if ($idxDelta==0) {
-			$value=$startY;	
+			$value=$startY;
 		} else {
 			$value = (log($idxDelta) * $scale) + $startY;
 		}
 		return $value;
 	}
 	public function exp($startX,$startY,$scale=1) {
-
-		$idx=$this->values['_index']; // 10
+		$idx=$this->dictionary['_index']; // 10
 		$idxDelta=$idx-$startX; // 10-0 = 10
 		$value = (exp($idxDelta/$scale) ) + $startY;
-		
 		return $value;
 	}
 	public function sin($startX,$startY,$speed=1,$scale=1) {
-
-		$idx=$this->values['_index']; // 10
+		$idx=$this->dictionary['_index']; // 10
 		$idxDelta=$idx-$startX; // 10-0 = 10
 		$value = (sin($idxDelta*0.01745329251*$speed)*$scale ) + $startY;
 		return $value;
 	}
 	public function atan($centerX,$startY,$speed=1,$scale=1) {
-
-		$idx=$this->values['_index']; // 10
+		$idx=$this->dictionary['_index']; // 10
 		$idxDelta=$idx-$centerX; // 10-0 = 10
 		$value = (atan($idxDelta*0.01745329251*$speed)*$scale ) + $startY;
 		return $value;
 	}
 	public function parabola($centerX, $startY, $scaleA=1, $scaleB=1, $scale=1) {
-
-		$idx=$this->values['_index']; // 10
+		$idx=$this->dictionary['_index']; // 10
 		$idxDelta=$idx-$centerX; // 10-0 = 10
 		$value = ($idxDelta*$idxDelta*$scaleA+ $idxDelta*$scaleB)*$scale + $startY;
 		return $value;
 	}
 	public function bell($centerX, $startY, $sigma=1, $scaleY=1) {
-
-		$idx=$this->values['_index']; // 10
+		$idx=$this->dictionary['_index']; // 10
 		$value = $this->normal($idx,$centerX,$sigma)*$scaleY+ $startY;
 		return $value;
 	}
-
 	public function normal($x, $mu, $sigma) {
 		return exp(-0.5 * ($x - $mu) * ($x - $mu) / ($sigma*$sigma))
 			/ ($sigma * sqrt(2.0 * M_PI));
 	}
 	#endregion
-	
 	#region fixed function
+	
+	const NUM_OPT=[0,1,2,3,4,5,6,7,8,9,''];
+	const NUM=[0,1,2,3,4,5,6,7,8,9,' '];
+	const ALPHA=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+	const ALPHA_OPT=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',''];
+	public function randommask($mask,$arrayName='') {
+		$txt='';
+		$c=strlen($mask);
+		$escape=false;
+		for($i=0;$i<$c;$i++) {
+			$m=$mask[$i];
+			if(!$escape) {
+				switch ($m) {
+					case '#':
+						$txt .= $this->randMiniArr(self::NUM_OPT);
+						break;
+					case '0':
+						$txt .= $this->randMiniArr(self::NUM);
+						break;
+					case 'u':
+						$txt .= $this->randMiniArr(self::ALPHA);
+						break;
+					case 'l':
+						$txt .= strtolower($this->randMiniArr(self::ALPHA));
+						break;
+					case 'x':
+						$txt .= strtolower($this->randMiniArr(self::ALPHA_OPT));
+						break;
+					case 'X':
+						$txt .= $this->randMiniArr(self::ALPHA_OPT);
+						break;
+					case '\\':
+						$escape = true;
+						break;
+					case '?':
+						$txt .= $this->randomarray($arrayName);
+						break;
+					default:
+						$txt .= $m;
+				}
+			} else {
+				$txt .= $m;
+				$escape = false;
+			}
+		}
+		return $txt;
+	}
+	private function randMiniArr($arr) {
+		$c=count($arr)-1;
+		return $arr[rand(0,$c)];
+	}
+	
 	/**
 	 * Random proportional
 	 * @param array $args . Example (1,2,3,30,30,40), where the changes are 1--30%, 2--30%, 3--40%
@@ -517,14 +577,14 @@ class ChaosMachineOne
 	public function randomarray($arrayName,$fieldName=null) {
 		if (!isset($this->arrays[$arrayName])) {
 			trigger_error("Array [$arrayName] not defined");
+			return "";
 		}
 		if ($this->arraysProportional[$arrayName]!=null) {
-			$ap=$this->arraysProportional[$arrayName];	
+			$ap=$this->arraysProportional[$arrayName];
 			$max=end($ap);
 			$idPos=rand(0,$max);
 			$idx=0;
 			foreach($ap as $k=>$v) {
-				
 				if($idPos<$v) {
 					$idx=$k;
 					break;
@@ -540,14 +600,29 @@ class ChaosMachineOne
 			return $this->arrays[$arrayName][$idx]->{$fieldName};
 		}
 	}
-	public function randomformat($formatName,$fieldName=null) {
-		$c=count($this->formats[$formatName]);
-		$idx=rand(0,$c-1);
-		$format=$this->formats[$formatName][$idx];
-		if($fieldName==null) {
-			return $this->parse($format);
-		} 
-		return "";
+	public function randomformat($formatName) {
+		if (!isset($this->formats[$formatName])) {
+			trigger_error("Format [$formatName] not defined");
+			return "";
+		}
+		if ($this->formatsProportional[$formatName]!=null) {
+			$ap=$this->formatsProportional[$formatName];
+			$max=end($ap);
+			$idPos=rand(0,$max);
+			$idx=0;
+			foreach($ap as $k=>$v) {
+				if($idPos<$v) {
+					$idx=$k;
+					break;
+				}
+			}
+			$format=$this->formats[$formatName][$idx];
+		} else {
+			$c = count($this->formats[$formatName]);
+			$idx = rand(0, $c - 1);
+			$format=$this->formats[$formatName][$idx];
+		}
+		return $this->parse($format);
 	}
 	public function parse($string)
 	{
@@ -558,7 +633,6 @@ class ChaosMachineOne
 		return $this->randomarray($matches[1]);
 	}
 	public function randomtext($startLorem='Lorem ipsum dolor',$arrayName='',$paragraph=false,$nWordMin=20,$nWordMax=40) {
-
 		$array=$this->arrays[$arrayName];
 		if($startLorem!=='') {
 			$counter=3;
@@ -598,18 +672,12 @@ class ChaosMachineOne
 		}
 		$txt.=trim($txt).'.';
 		return $txt;
-
 	}
-
-
-
-
 	public function arrayIndex($nameArray)
 	{
-		$idx=$this->values['_index'];
+		$idx=$this->dictionary['_index'];
 		return $this->arrays[$nameArray][$idx];
 	}
-	
 	public function random($from,$to,$jump=1,$prob0=null,$prob1=null,$prob2=null) {
 		$r='';
 		switch ($this->pipeFieldType) {
@@ -626,15 +694,13 @@ class ChaosMachineOne
 					$end=($segment+1)*$delta-1 +$from;
 					$r=rand($init/$jump,$end/$jump)*$jump;
 				}
-				
 				$this->pipeValue+=$r;
 				break;
 			default:
 				trigger_error('random type ['.$this->pipeFieldType.'] not defined');
 		}
-		
 		return $r;
-	} 
+	}
 	private function getRandomSegment($prob0=null,$prob1=null,$prob2=null) {
 		if($prob0===null) return null;
 		$segment=rand(0,$prob0+$prob1+$prob2);
@@ -642,11 +708,8 @@ class ChaosMachineOne
 		if($segment<=$prob0+$prob1) return 1;
 		return 2;
 	}
-	
 	#endregion
-	
 	public function endPipe() {
-		
 		return $this;
 	}
 }

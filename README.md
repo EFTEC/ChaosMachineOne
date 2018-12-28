@@ -84,7 +84,7 @@ While this chart is far from real, but it is not TOO RANDOM and it has a trend.
 
 > field($name,$type,$special='database',$initValue=0,$min=PHP_INT_MIN,$max=PHP_INT_MAX)
 
-fields are out values. They could be numeric, date and string.  
+fields are our values. They could be numeric, date and string.  
 
 * Fields could have speed and acceleration. However, if you change the value manually, then the speed and acceleration is ignored.  
 
@@ -325,6 +325,16 @@ field.add=20 // add 20 to the field
 field.add="5h" // adds 5 hours to the field. 5m = 5 minutes, 5d = 5 days
 ```
 
+### field.concat=xxxx
+
+It concatenates a value to a field. 
+```
+field.concat=20 
+field.concat="abc" 
+```
+
+
+
 ### field.skip=xxx
 
 It skips a value to the next value. It is used for date.
@@ -353,7 +363,12 @@ It sets an array.  If the array is associative, then the value is the probabilit
 
 ### ->setFormat('formatName',[])
 
-It sets a format (template) to merge different arrays.  The arrays are marked as {{name-of-the-array}}
+It sets a format (template) to merge different arrays.  
+The arrays are marked as {{name-of-the-array}}
+
+If the array is associative then it returns a value according it's probability.
+
+
 
 ```
 ->setFormat('maleNameFormats',['{{namearr}} {{lastnamearr}}','Dr.{{namearr}} {{lastnamearr'])
@@ -361,7 +376,7 @@ It sets a format (template) to merge different arrays.  The arrays are marked as
 
 ### randomarray("arrayname",'field'=null)
 
-it returns a random row inside of the array declared with setArray(). If the array is associative then it returns a value according it's chance.
+it returns a random row inside of the array declared with setArray(). If the array is associative then it returns a value according it's probability.
 
 If the array is a list of objects, then it returns the value of the field.
 
@@ -379,6 +394,23 @@ If $paragraph is not 0, then it could generates paragraph (line carriage)
 ->gen('when always then text.value=randomtext("Lorem ipsum dolor","loremIpsumArray",1,4,30)')
 ```
 
+### randommask($mask,$arrayName='')
+
+It generates a text based on a mask
+
+* \# = a (optional) random digit
+* 0 = a random digit.
+* u = An uppercase letter
+* l = A lowercase letter
+* X = An optional letter (uppercase)
+* x = An optional letter (lowercase)
+* ? = A random word of the array
+* \ = Escape character, (the next character will be returned without processing)
+
+> randommask("##-00 uu ll \0 - oo (a)","lastName") // where lastName is an array
+
+
+
 ### randomformat($nameFormat)
 
 It generates a random text using a mixes of format and different arrays.
@@ -389,5 +421,6 @@ It generates a random text using a mixes of format and different arrays.
 
 
 ## version
-1.1 Now Minilib is a external library   
-1.0 First open source version   
+* 1.2 Some cleanup.
+* 1.1 Now Minilib is a external library   
+* 1.0 First open source version   
