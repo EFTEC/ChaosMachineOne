@@ -368,10 +368,12 @@ The arrays are marked as {{name-of-the-array}}
 
 If the array is associative then it returns a value according it's probability.
 
-
-
 ```
 ->setFormat('maleNameFormats',['{{namearr}} {{lastnamearr}}','Dr.{{namearr}} {{lastnamearr'])
+```
+
+```
+->setFormat('maleNameFormats',['{{namearr}} {{lastnamearr}}'=>80,'Dr.{{namearr}} {{lastnamearr'=>20]) //probability of 80% and 20%
 ```
 
 ### randomarray("arrayname",'field'=null)
