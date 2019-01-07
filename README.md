@@ -419,6 +419,21 @@ It generates a text based on a mask
 
 > randommask("##-00 uu ll \0 - oo (a)","lastName") // where lastName is an array
 
+## File features
+
+### arrayFromFolder()
+
+It reads a folder and returns an array of files. The reading is not recursive and it could be filtered by extension.  
+
+> $filesWithoutExtension=$chaos->arrayFromFolder($localfolder,'jpg',false); 
+
+### Script function destionationArray.copyfilefrom()=originArray.getvalue
+
+It copies a file from a location to another. 
+
+```
+->gen('when always set ImageDestination.copyfilefrom=ImageSource.getvalue')
+```
 
 
 
