@@ -414,7 +414,7 @@ It generates a text based on a mask
 * l = A lowercase letter
 * X = An optional letter (uppercase)
 * x = An optional letter (lowercase)
-* ? = A random word of the array
+* ? = A random word from an array or a format.
 * \ = Escape character, (the next character will be returned without processing)
 
 > randommask("##-00 uu ll \0 - oo (a)","lastName") // where lastName is an array
@@ -423,6 +423,10 @@ It generates a text based on a mask
 
 
 ## version
+* 1.3 Now it could copy files.
+   New method arrayFromFolder() reads all files of a folder.  
+   Script method field.copyfilefrom=origin copies from from an origin (array of files)    
+   And now randommask (?) wildcard works with array and formats.     
 * 1.2 Some cleanup.
 * 1.1 Now Minilib is a external library   
 * 1.0 First open source version   

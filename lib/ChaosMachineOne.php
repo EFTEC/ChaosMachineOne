@@ -6,7 +6,7 @@ use eftec\minilang\MiniLang;
  * Class ChaosMachineOne
  * @package eftec\chaosmachineone
  * @author   Jorge Patricio Castro Castillo <jcastro arroba eftec dot cl>
- * @version 1.2 2018-12-28
+ * @version 1.3 2019-01-06
  * @link https://github.com/EFTEC/ChaosMachineOne
  * @license LGPL v3 (or commercial if it's licensed)
  */
@@ -121,9 +121,12 @@ class ChaosMachineOne
 		}
 		return $this;
 	}
+	private function isChaosField($obj) {
+		return is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField';
+	}
 	public function cleanAndCut() {
 		foreach($this->dictionary as &$obj) {
-			if(is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField') {
+			if($this->isChaosField($obj)) {
 				switch ($obj->type) {
 					case 'int':
 						$obj->curValue=round($obj->curValue,0);
@@ -157,7 +160,7 @@ class ChaosMachineOne
 			$this->miniLang->evalAllLogic($this, $this->dictionary, false);
 			$this->cleanAndCut();
 			foreach($this->dictionary as &$obj) {
-				if(is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField') {
+				if($this->isChaosField($obj)) {
 					$obj->reEval();
 				}
 			}
@@ -232,7 +235,7 @@ class ChaosMachineOne
 			$this->cleanAndCut();
 			$arr=[];
 			foreach($this->dictionary as &$obj) {
-				if(is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField') {
+				if($this->isChaosField($obj)) {
 					$obj->reEval();
 					if ($obj->special=='database') {
 						if ($obj->type == 'datetime') {
@@ -251,7 +254,7 @@ class ChaosMachineOne
 	public function stat() {
 		$this->startBody();
 		foreach($this->dictionary as &$obj) {
-			if(is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField') {
+			if($this->isChaosField($obj)) {
 				echo "<hr>Stat <b>".$obj->name.'</b>:<br>';
 				echo "Min:".$obj->statMin."<br>";
 				echo "Max:".$obj->statMax."<br>";
@@ -265,6 +268,16 @@ class ChaosMachineOne
 	public function debug($msg) {
 		if($this->debugMode) echo $msg."<br>";
 	}
+
+	/**
+	 * @param string $name Name of the field. Example "IdProduct" or "NameCustomer"
+	 * @param string $type=['int','decimal','datetime','string'][$i]
+	 * @param string $special=['datebase','local'][$i] Indicates if the field will be store into the database
+	 * @param int $initValue
+	 * @param int $min
+	 * @param int $max
+	 * @return $this
+	 */
 	public function field($name,$type,$special='database',$initValue=0,$min=-2147483647,$max=2147483647) {
 		$this->pipeFieldName=$name;
 		if (strpos($type,'(')!==false) {
@@ -330,6 +343,20 @@ class ChaosMachineOne
 	public function value(ChaosField $field,$v2=null) {
 		$field->curValue=$v2;
 	}
+
+	/**
+	 * @param ChaosField $destination
+	 * @param mixed $source
+	 */
+	public function copyfilefrom(ChaosField $destination, $source=null) {
+		if ($this->isChaosField($source)) {
+			copy($source->curValue,$destination->curValue);
+		} else {
+			copy($source,$destination->curValue);	
+		}
+		
+	}
+	
 	public function getvalue(ChaosField $field) {
 		return $field->curValue;
 	}
@@ -439,6 +466,44 @@ class ChaosMachineOne
 	public function now() {
 		return time();
 	}
+
+	/**
+	 * Returns an array with the list of files (not recursive) of a folder.
+	 * @param $folder
+	 * @param string|array $ext (example "jpg","doc" or ["jpg","doc"])
+	 * @param bool $returnWithExtension If false then it returns the file name without the extension
+	 * @return array
+	 */
+	public function arrayFromFolder($folder,$ext="*",$returnWithExtension=true,$shuffle=false) {
+		$files = scandir($folder);
+		$result=[];
+		foreach($files as $file) {
+			$pi=pathinfo($file);
+			if (@$pi['extension']) {
+				if (is_array($ext)) {
+					if (in_array($pi['extension'],$ext)) {
+						if ($returnWithExtension) {
+							$result[] = $pi['basename'];
+						} else {
+							$result[] = $pi['filename'];
+						}
+					}
+				} else {
+					if ($pi['extension'] == $ext || $ext == '*') {
+						if ($returnWithExtension) {
+							$result[] = $pi['basename'];
+						} else {
+							$result[] = $pi['filename'];
+						}
+					}
+				}
+			}
+		}
+		if ($shuffle) shuffle($result); 
+			
+		return $result;
+	}
+	
 	/**
 	 * It converts a string to a timestamp.
 	 * @param $dateTxt
@@ -535,7 +600,15 @@ class ChaosMachineOne
 						$escape = true;
 						break;
 					case '?':
-						$txt .= $this->randomarray($arrayName);
+						if ($this->isArray($arrayName)) {
+							$txt .= $this->randomarray($arrayName);
+						} else {
+							if ($this->isFormat($arrayName)) {
+								$txt .= $this->randomformat($arrayName);
+							} else {
+								trigger_error("Array or Format [$arrayName] not defined for ?");
+							}
+						}
 						break;
 					default:
 						$txt .= $m;
@@ -574,8 +647,27 @@ class ChaosMachineOne
 		}
 		return $args[0];
 	}
+	public function arrayindex($arrayName,$index=null) {
+		if (!$this->isArray($arrayName)) {
+			trigger_error("Array [$arrayName] not defined");
+			return "";
+		}
+		if ($index===null) $index=$this->dictionary['_index'];
+
+		if (!$this->arrays[$arrayName][$index]) {
+			trigger_error("Array [$arrayName] exists but [$index] is not defined.");
+			return "";
+		}
+		return $this->arrays[$arrayName][$index];
+	}
+	public function isArray($arrayName) {
+		return isset($this->arrays[$arrayName]);
+	}
+	public function isFormat($formatName) {
+		return isset($this->formats[$formatName]);
+	}	
 	public function randomarray($arrayName,$fieldName=null) {
-		if (!isset($this->arrays[$arrayName])) {
+		if (!$this->isArray($arrayName)) {
 			trigger_error("Array [$arrayName] not defined");
 			return "";
 		}
@@ -601,7 +693,7 @@ class ChaosMachineOne
 		}
 	}
 	public function randomformat($formatName) {
-		if (!isset($this->formats[$formatName])) {
+		if (!$this->isFormat($formatName)) {
 			trigger_error("Format [$formatName] not defined");
 			return "";
 		}
@@ -630,7 +722,7 @@ class ChaosMachineOne
 	}
 	protected function callRandomArray($matches)
 	{
-		if(!isset($this->arrays[$matches[1]])) {
+		if($this->isArray($matches[1])) {
 			return $this->randomarray($matches[1]);
 		} else {
 			return $this->getDictionary($matches[1])->curValue;
@@ -677,11 +769,7 @@ class ChaosMachineOne
 		$txt.=trim($txt).'.';
 		return $txt;
 	}
-	public function arrayIndex($nameArray)
-	{
-		$idx=$this->dictionary['_index'];
-		return $this->arrays[$nameArray][$idx];
-	}
+
 	public function random($from,$to,$jump=1,$prob0=null,$prob1=null,$prob2=null) {
 		$r='';
 		switch ($this->pipeFieldType) {

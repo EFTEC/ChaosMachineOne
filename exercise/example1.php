@@ -90,6 +90,11 @@ echo "<hr>";
 die(1);
 
 $f=new ChaosMachineOne();
+
+
+
+
+
 //  when date.w=2  then random(20,300)
 
 $f->table('table',5000)

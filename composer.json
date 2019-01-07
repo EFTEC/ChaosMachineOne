@@ -1,7 +1,7 @@
 {
     "name": "eftec/chaosmachineone",
     "description": "A Chaos Machine for PHP",
-    "version": "1.2",
+    "version": "1.3",
     "type": "library",
     "keywords": [
         "php"
@@ -20,8 +20,8 @@
     "require": {
         "php": ">=5.6",
         "composer/installers": "^1.6",
-        "eftec/daoone": "^3.21",
-        "eftec/minilang": "^1.14",
+        "eftec/daoone": "^3.22",
+        "eftec/minilang": "^1.15",
         "ext-ctype": "*"
     },
     "require-dev": {
