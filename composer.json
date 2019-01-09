@@ -1,7 +1,7 @@
 {
     "name": "eftec/chaosmachineone",
     "description": "A Chaos Machine for PHP",
-    "version": "1.3",
+    "version": "1.4",
     "type": "library",
     "keywords": [
         "php"

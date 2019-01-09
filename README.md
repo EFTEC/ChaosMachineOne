@@ -438,6 +438,7 @@ It copies a file from a location to another.
 
 
 ## version
+* 1.4 We could run ->insert(true)->show() at the same time. Insert(true) will keep the values (so we could show it without recalculating)
 * 1.3 Now it could copy files.
    New method arrayFromFolder() reads all files of a folder.  
    Script method field.copyfilefrom=origin copies from from an origin (array of files)    

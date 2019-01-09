@@ -66,9 +66,9 @@ if($customers) {
 		->setFormat('fullnameformat', ['{{namemale}} {{lastname}}', '{{namefemale}} {{lastname}}'])
 		->gen('when always set datecreation.speed=random(5000,86400)')
 		->gen('when always set name.value=randomformat("fullnameformat")')
-		->insert()
-		->stat();
-		//->show(['name', 'datecreation']);
+		->insert(true)
+		->stat()
+		->show(['name', 'datecreation']);
 }
 if($products) {
 	$chaos = new ChaosMachineOne();
@@ -80,7 +80,7 @@ if($products) {
 		->setArray('productname', Products::$products)
 		->gen('when always set price.value=random(0.5,20,0.1)')
 		->gen('when always set name.value=arrayindex("productname")')
-		->insert()
+		->insert(true)
 		->stat();
 		//->show(['name', 'price']);
 	//->insert();
@@ -101,7 +101,7 @@ if($sales || 1==1 ) {
 		->gen('when always then idproduct.value=random(1,$countProducts) 
 		and idcustomer.value=random(1,1000) and amount.value=random(1,10)')
 		->show(['idproduct','idcustomer','amount','date'])
-		//->insert()
-		->stat();
-		//->show(['idproduct','idcustomer','amount','date']);
+		->insert(true)
+		->stat()
+		->show(['idproduct','idcustomer','amount','date']);
 }

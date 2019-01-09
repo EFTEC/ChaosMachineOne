@@ -40,7 +40,7 @@ echo "<h1>Creating $numFiles products</h1>";
 // this examples works with files. It does the next tasks.
 // * it fills the database with information based on the files (products)
 // * it copies the files from the source /machines to destination /databasefile changing the filename
-
+$numFiles=3;
 $chaos->table('products',$numFiles) // the table products must exist!.
 	->setDb($db)
 	->field('IdProduct','int', 'identity', 0)
@@ -69,8 +69,9 @@ $chaos->table('products',$numFiles) // the table products must exist!.
 	->gen('when always then Description.value=randomtext("Lorem ipsum dolor","loremIpsum",1,4,30)')
 	->gen('when always set Weight.value=random(2,10)')
 	->gen('when always set IdCategory.value=random(1,4)')
+	->insert(true)
 	->show(['IdProduct','Name','Price','Image','ImageSource','ImageDestination','Description','Weight','IdCategory'])
-	//->insert()
+	//
 	;
 
 	

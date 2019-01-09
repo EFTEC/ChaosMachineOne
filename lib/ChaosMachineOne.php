@@ -6,7 +6,7 @@ use eftec\minilang\MiniLang;
  * Class ChaosMachineOne
  * @package eftec\chaosmachineone
  * @author   Jorge Patricio Castro Castillo <jcastro arroba eftec dot cl>
- * @version 1.3 2019-01-06
+ * @version 1.4 2019-01-08
  * @link https://github.com/EFTEC/ChaosMachineOne
  * @license LGPL v3 (or commercial if it's licensed)
  */
@@ -31,6 +31,9 @@ class ChaosMachineOne
 	private $maxId;
 	private $daysWeek=['','monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 	private $bodyLoad=false;
+	
+	/** @var array that stores the results method insert() */
+	private $cacheResult=null;
 	/**
 	 * ChaosMachineOne constructor.
 	 */
@@ -124,6 +127,10 @@ class ChaosMachineOne
 	private function isChaosField($obj) {
 		return is_object($obj) && get_class($obj)=='eftec\chaosmachineone\ChaosField';
 	}
+
+	/**
+	 * We limit the results for each constrains defined by the fields.
+	 */
 	public function cleanAndCut() {
 		foreach($this->dictionary as &$obj) {
 			if($this->isChaosField($obj)) {
@@ -154,11 +161,29 @@ class ChaosMachineOne
 		}
 		return $txt;
 	}
-	public function run() {
+
+	/**
+	 * We then the evaluation
+	 * @param bool $storeCache
+	 */
+	public function run($storeCache=false) {
+		if ($storeCache) $this->cacheResult=[]; // deleted the cache
 		for($i=0;$i<$this->maxId;$i++) {
 			$this->dictionary['_index'] = $i;
 			$this->miniLang->evalAllLogic($this, $this->dictionary, false);
 			$this->cleanAndCut();
+			if ($storeCache) {
+				$tmp=[];
+				// clone values (avoid instancing the same objects).
+				foreach($this->dictionary as $key => $obj) {
+					if(is_object($obj)) {
+						$tmp[$key] = clone $obj;
+					} else {
+						$tmp[$key] = $obj;
+					}
+				}
+				$this->cacheResult[] =$tmp;
+			}
 			foreach($this->dictionary as &$obj) {
 				if($this->isChaosField($obj)) {
 					$obj->reEval();
@@ -192,9 +217,13 @@ class ChaosMachineOne
 		echo "</tr></thead>";
 		echo "<tbody>";
 		for($i=0;$i<$this->maxId;$i++) {
-			$this->dictionary['_index']=$i;
-			$this->miniLang->evalAllLogic($this, $this->dictionary,false);
-			$this->cleanAndCut();
+			$this->dictionary['_index'] = $i;
+			if ($this->cacheResult!=null) {
+				$this->dictionary=$this->cacheResult[$i];
+			} else {
+				$this->miniLang->evalAllLogic($this, $this->dictionary, false);
+				$this->cleanAndCut();
+			}
 			echo "<tr>\n";
 			foreach($cols as $col) {
 				echo "<td>";
@@ -219,12 +248,15 @@ class ChaosMachineOne
 		echo "</table>\n";
 		return $this;
 	}
+
 	/**
 	 * Inserts the rows to the database.
+	 * @param bool $storeCache If true, then the result will be store in the cache. 
 	 * @return $this
 	 * @throws \Exception
 	 */
-	public function insert() {
+	public function insert($storeCache=false) {
+		if ($storeCache) $this->cacheResult=[]; // deleted the cache
 		if ($this->db===null) {
 			$this->debug('WARNING: No database is set');
 			return $this;
@@ -234,6 +266,18 @@ class ChaosMachineOne
 			$this->miniLang->evalAllLogic($this, $this->dictionary, false);
 			$this->cleanAndCut();
 			$arr=[];
+			if ($storeCache) {
+				$tmp=[];
+				// clone values (avoid instancing the same objects).
+				foreach($this->dictionary as $key => $obj) {
+					if(is_object($obj)) {
+						$tmp[$key] = clone $obj;
+					} else {
+						$tmp[$key] = $obj;
+					}
+				}
+				$this->cacheResult[] =$tmp;
+			}
 			foreach($this->dictionary as &$obj) {
 				if($this->isChaosField($obj)) {
 					$obj->reEval();
@@ -264,6 +308,7 @@ class ChaosMachineOne
 				}
 			}
 		}
+		return $this;
 	}
 	public function debug($msg) {
 		if($this->debugMode) echo $msg."<br>";
@@ -456,6 +501,7 @@ class ChaosMachineOne
 	{
 		$this->table=$table;
 		$this->maxId=$maxId;
+		$this->cacheResult=null;
 		return $this;
 	}
 	#region Range functions

@@ -66,6 +66,10 @@ class ChaosField
 				break;
 		}
 	}
+
+	/**
+	 * We reevaluated the statistic.
+	 */
 	public function reEval() {
 		switch ($this->type) {
 			case 'int':
