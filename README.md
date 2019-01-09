@@ -11,6 +11,7 @@ objective is to generate values to store into the database (mysql)
 [![php](https://img.shields.io/badge/php-7.x-green.svg)]()
 [![CocoaPods](https://img.shields.io/badge/docs-70%25-yellow.svg)]()
 
+
 - [ChaosMachineOne for PHP](#chaosmachineone-for-php)
   * [What is the objective?](#what-is-the-objective-)
   * [fields](#fields)
@@ -46,12 +47,12 @@ objective is to generate values to store into the database (mysql)
   * [version](#version)
 
 
-
-
 ## What is the objective?
 
 Sometimes we want to generate fake values for the database that are controlled and 
 consistent. So, this library tries to create an ordered chaos. 
+
+[https://medium.com/cook-php/chaos-and-control-or-the-art-of-randomness-40e04662a81e](Medium Article)
 
 Let's say the next exercise.  We want to generate random values for a new system (sales)
 
