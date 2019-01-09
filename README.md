@@ -52,7 +52,7 @@ objective is to generate values to store into the database (mysql)
 Sometimes we want to generate fake values for the database that are controlled and 
 consistent. So, this library tries to create an ordered chaos. 
 
-[https://medium.com/cook-php/chaos-and-control-or-the-art-of-randomness-40e04662a81e](Medium Article)
+[Medium Article](https://medium.com/cook-php/chaos-and-control-or-the-art-of-randomness-40e04662a81e)
 
 Let's say the next exercise.  We want to generate random values for a new system (sales)
 
