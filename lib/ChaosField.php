@@ -19,9 +19,12 @@ class ChaosField
 	var $curValue=0;
 	var $curSpeed=0;
 	var $curAccel=0;
+	var $allowNull=false;
 	
 	var $min;
 	var $max;
+	/** @var bool if true and the operation fails, then this value is re-calculated */
+	var $retry=false;
 	
 	var $statSum=0;
 	var $statMin=0;
@@ -75,15 +78,18 @@ class ChaosField
 			case 'int':
 			case 'datetime':
 			case 'date':
-				$this->curValue +=$this->curSpeed;
-				$this->curValue=round($this->curValue,0);
+			
+				@$this->curValue += $this->curSpeed;
+				$this->curValue = round($this->curValue, 0);
+
 				$this->curSpeed += $this->curAccel;
+				
 				if ($this->curValue<$this->statMin) $this->statMin=$this->curValue;
 				if ($this->curValue>$this->statMax) $this->statMax=$this->curValue;
 				$this->statSum+=$this->curValue;
 				break;
 			case 'decimal':
-				$this->curValue += $this->curSpeed;
+				@$this->curValue += $this->curSpeed;
 				$this->curSpeed += $this->curAccel;
 				if ($this->curValue<$this->statMin) $this->statMin=$this->curValue;
 				if ($this->curValue>$this->statMax) $this->statMax=$this->curValue;

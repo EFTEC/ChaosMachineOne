@@ -1,7 +1,7 @@
 <?php
 
 use eftec\chaosmachineone\ChaosMachineOne;
-use eftec\DaoOne;
+use eftec\PdoOne;
 use eftec\minilang\MiniLang;
 include "../vendor/autoload.php";
 include "../lib/en_US/Person.php";
@@ -26,7 +26,7 @@ $sql="CREATE TABLE `products` (
 ) ENGINE=InnoDB";
 
 
-$db=new DaoOne("localhost","root","abc.123","chicago");
+$db=new PdoOne("mysql","localhost","root","abc.123","chicago");
 $db->open();
 try {
 	$db->runRawQuery($sql);

@@ -29,17 +29,17 @@ $chaos->table('table',1000)
 	->field('nationalid','string','database','',0,40)
 	->field('email','string','database','',0,40)
 	->field('sex','int','local',0,0,1)
-	->setArray('firstNameMale',PersonContainer::$firstNameMale)
+	->setArray('suffix',PersonContainer::$suffix,'increase')
+	->setArray('firstNameMale',PersonContainer::$firstNameMale,"increase")  // first name are not popular, last names are most popular
 	->setArray('lastName',PersonContainer::$lastName)
 	->setArray('titleMale',PersonContainer::$titleMale)
-	->setArray('suffix',PersonContainer::$suffix)
-	->setArray('firstNameFemale',PersonContainer::$firstNameFemale)
+	->setArray('firstNameFemale',PersonContainer::$firstNameFemale,"decrease") // first name are  popular, last names are least popular
 	->setArray('titleFemale',PersonContainer::$titleFemale)
 	->setArray('loremIpsum',PersonContainer::$loremIpsum)
 	->setArray('domains',PersonContainer::$domains)
 	->setArray('prefixarray',[''=>70,'Dr.'=>10,'Phd.'=>20]) //70% change of no prefix, 10% of Dr. and 20% of PhD
-	->setFormat('maleNameFormats',PersonContainer::$maleNameFormats)
-	->setFormat('femaleNameFormats',PersonContainer::$femaleNameFormats)
+	->setFormat('maleNameFormats',PersonContainer::$maleNameFormats) 
+	->setFormat('femaleNameFormats',PersonContainer::$femaleNameFormats) 
 	->setFormat('formatProp',['{{firstNameMale}}'=>80,'{{suffix}} {{firstNameMale}}'=>20]) // 80% only name, 20% suffix and name
 	->gen('when always then sex=random(0,1)')
 	->gen('when sex=0 set name.value=randomarray("firstNameMale")')

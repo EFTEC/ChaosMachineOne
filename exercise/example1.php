@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * @deprecated 
+ */
 use eftec\chaosmachineone\ChaosMachineOne;
 use eftec\minilang\MiniLang;
 include "../vendor/autoload.php";
@@ -87,7 +89,7 @@ echo "</pre>";
 echo "<hr>";
 
 
-die(1);
+//die(1);
 
 $f=new ChaosMachineOne();
 

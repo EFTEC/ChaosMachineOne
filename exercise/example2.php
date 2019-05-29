@@ -14,7 +14,7 @@ $chaos->setDictionary('_index',100);
 
 
 $chaos->table('table',100)
-	->field('idtable','int','database',$chaos->random(0,200),0,200)
+	->field('idtable','int','database',$chaos->random(0,200),0,200)->allowNull(true)
 	//->table('customertable','indexCol,Name','customer','indexCol','condition=?',[]) // it stores the minimum and maximum value of indexCol
 	//->gen('set idcustomer.value=randomarray("customers","idcustomer")')
 	//->gen('set idcustomer.value=randomfind("customertable",'idcustomer'))
@@ -32,12 +32,15 @@ $chaos->table('table',100)
 	//->gen('when _index<=200 then idtable.value=exp(0,500,10)') 
 	//	->gen('when _index<=360 then idtable.value=bell(50,0,1,100)')  
 	//->gen('when _index<=360 then idtable.value=atan(50,0,20,10) and idtable.valueabs')
-	->gen('when _index<=360 then idtable.value=random(0,200,1,10,80,10)')
+	->gen('when _index<=360 then idtable.value=random(0,200)')
+	->gen('when _index<=360 then idtable.value=randomprop(idtable,null,90,10)')
+	//->gen('when _index<=360 then idtable.value=random(idtable,0,200,1,10,80,10)') // (first value,last value,step,prob0,prob1,prob2)
 	//and idtable.add=random(-2,2) and idtable.add=ramp(0,360,0,30)
 	//and idtable.add=randomprop(0,3,80,10)') 
 	//->gen('when _index=201 then idtable.speed=0 and idtable.accel=0 and idtable.add=random(-100,100)') 
 	//->gen('when _index>200 then idtable.add=random(-100,100)')  
-	->show(['idtable']);
+	->show(['idtable'])
+	->stat();
 	
 	
 	

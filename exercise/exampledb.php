@@ -1,7 +1,7 @@
 <?php
 
 use eftec\chaosmachineone\ChaosMachineOne;
-use eftec\DaoOne;
+use eftec\PdoOne;
 
 @set_time_limit(200);
 
@@ -29,9 +29,10 @@ $sqlCreateSales="CREATE TABLE `sales` (
   `amount` INT NULL,
   PRIMARY KEY (`idsales`))";
 
-$db=new DaoOne("localhost","root","abc.123","chaosdb");
+$db=new PdoOne("mysql","localhost","root","abc.123","chaosdb");
 $db->open();
-$customers=false;
+$db->logLevel=3;
+$customers=true;
 $products=false;
 $sales=false;
 try {
@@ -57,11 +58,13 @@ if($customers) {
 	$chaos->debugMode=true;
 	$chaos->table('customers', 1000)
 		->setDb($db)
-		->field('idcustomer', 'int', 'identity', 0, 0, 1000)
+		->field('idcustomer', 'int','identity', 0, 0, 1000)
 		->field('name', 'string', 'database', '', 0, 45)
+			->retry()
 		->field('datecreation', 'datetime', 'database', $chaos->now())
-		->setArray('namemale', PersonContainer::$firstNameMale)
+		//->setArray('namemale', PersonContainer::$firstNameMale)
 		->setArray('lastname', PersonContainer::$lastName)
+		->setArrayFromDBTable('namemale','sakila.actor','first_name')
 		->setArray('namefemale', PersonContainer::$firstNameFemale)
 		->setFormat('fullnameformat', ['{{namemale}} {{lastname}}', '{{namefemale}} {{lastname}}'])
 		->gen('when always set datecreation.speed=random(5000,86400)')
@@ -69,6 +72,7 @@ if($customers) {
 		->insert(true)
 		->stat()
 		->show(['name', 'datecreation']);
+
 }
 if($products) {
 	$chaos = new ChaosMachineOne();

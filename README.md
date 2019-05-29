@@ -94,6 +94,9 @@ fields are our values. They could be numeric, date and string.
 * "field.accel=X"  it sets the acceleraiton of the field. If the speed is set manually, then the acceleration is ignored.
 * "field.stop=X" it sets the speed and acceleration to zero, and sets the value to X.
 
+* The speed and acceleration is evaluated when it is executed (method run() )
+
+
 Examples:   
 > "set field.value=20" // it sets the value of the field to 20   
 > "set field.speed=3" // it sets the speed of the field by 3. The field increases the value every cycle by 3    
@@ -119,13 +122,40 @@ when logic and/or logic2 and/or logic3 then setvalue1 , setvalue2 , setvalue3
 
 ### minilang
 
-* $var = it is php global variable.
-* field = it is an minilang variable.
-* * field.value it is the value of a column (if any)
-* _index = indicates the current index (current number of row)
-* 20 , 20.50 = its a fixed value
-* "text",'text' = it is fixed string value
-* fn() = its a function 
+| Variable                                           | Explanation                                         | Example                              |
+|----------------------------------------------------|-----------------------------------------------------|--------------------------------------|
+| $var                                               | it is php global variable.                          | $var="hi"                            |
+| field                                              | it is an minilang variable.                         | field                                |
+| field.value   it is the value of a column (if any) | field.value="hi"                                    |                                      |
+| _index                                             | indicates the current index (current number of row) | _index<200                           |
+| 20 , 20.50                                         | its a fixed value                                   | 20,50.3                              |
+| "text",'text'                                      | it is fixed string value                            | "text",'text'                        |
+| fn()                                               | its a function                                      | myfunction(value), some.myfunction() |
+
+### Reserved variables
+
+| Reserved word | Explanation                                                                  |
+|---------------|------------------------------------------------------------------------------|
+| null          | null value                                                                   |
+| false         | false value                                                                  |
+| true          | true value                                                                   |
+| on            | 1                                                                            |
+| off           | 0                                                                            |
+| undef         | -1 (for undefined)                                                           |
+| flip          | (special value). It inverts a value ON<->OFF<br>Used as value.flip                                 |
+| now           | returns the current timestamp (integer)                                      |
+| timer         | returns the current timestamp (integer)                                      |
+| interval      | returns the interval (in seconds) between the last change and now            |
+| fullinterval  | returns the interval (in seconds) between the start of the process and   now |
+| _index  | returns the current index (the current counter of row) |
+| always  | reserved word. It is used as "when always" |
+
+Examples:
+
+myvar = is a variable
+
+> when always set myvar.value=null   
+> when _index<20 set myvar.value=false
 
 Limits.
 * Parenthesis are now allowed (unless it is defines a function).
@@ -238,7 +268,7 @@ Functions that generates a single value
 
 ### randomprop(...$args)
 
-It generates a random value by using different probabilities.
+It generates a random value by using different proportions or probabilities.
 
 > randomprop(1,2,3,30,50,20) 
 
@@ -247,6 +277,8 @@ It generates a random value by using different probabilities.
 * there is 20% for 3  
 
 > ->gen('when _index<200 then idtable.value=randomprop(1,2,3,30,50,20)')
+> ->gen('when always then idtable.value=randomprop(idtable,null,1,1)) // there is a 50% chance the value is null
+
 
 ![randomprop](docs/randomprop.jpg)
 
@@ -289,11 +321,11 @@ Optionally, you could add a probability for each segment.
 
 ### field.speed=xxxx
 
-It sets the speed of the field.
+It sets the speed of the field. If the field has speed then it's value it's increased for each iteraction.
 
 ### field.accel=xxxx
 
-It sets  the acceleration of a field.
+It sets  the acceleration of a field. If the field has acceleration then it's speed it's increased for each iteraction.
 
 ### field.value=xxxx
 
@@ -313,6 +345,8 @@ It returns the current part of the date (day,month,year,hour,minute and weekday)
 
 > It is used for field of the type datetime.
 > It is not for set, no matter the value.
+> Weekday = 1= monday, 7=sunday
+
 
 ### field.stop=xxxx
 
@@ -340,12 +374,26 @@ field.concat="abc"
 
 It skips a value to the next value. It is used for date.
 
+| value        |
+|--------------|
+| hour         |
+| day          |
+| month        |
+| monday       |
+| tuesday      |
+| wednesday    |
+| thursday     |
+| friday       |
+| saturday     |
+| sunday       |
+
 ```
 field.skip='day'  // it skips to the next day (it start at 00:00)
 field.skip='month'  // it skips to the next month (it start at the first day of the month 00:00)
 field.skip='monday' // (or the name of the day), it skips to the next monday (00:00 hours)
 field.skip='hour' // it skips to the next hour (minute 00)
 ```
+
 
 
 ## Arrays and texts
