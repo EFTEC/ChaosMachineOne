@@ -43,7 +43,7 @@ $chaos->table('table',1000)
 	->setFormat('formatProp',['{{firstNameMale}}'=>80,'{{suffix}} {{firstNameMale}}'=>20]) // 80% only name, 20% suffix and name
 	->gen('when always then sex=random(0,1)')
 	->gen('when sex=0 set name.value=randomarray("firstNameMale")')
-	->gen('when sex=0 set fullname.value=randomformat("maleNameFormats")')
+	->gen('when sex=0 set fullname.value=randomformat("maleNameFormats")') /** @see \eftec\chaosmachineone\ChaosMachineOne::randomformat */
 	->gen('when sex=1 set name.value=randomarray("firstNameFemale")')
 	->gen('when sex=1 set fullname.value=randomformat("femaleNameFormats")')
 	->gen('when always set prefixprop.value=randomformat("formatProp")')

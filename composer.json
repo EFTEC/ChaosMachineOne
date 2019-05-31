@@ -22,7 +22,8 @@
         "composer/installers": "^1.6",
         "eftec/minilang": "^2.0",
         "ext-ctype": "*",
-        "eftec/pdoone": "^1.3"
+        "eftec/pdoone": "^1.3",
+      "ext-pdo": "*"
     },
     "require-dev": {
       "phpunit/phpunit": "^5.7 || ^7.5.1"

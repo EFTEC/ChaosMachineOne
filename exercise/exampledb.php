@@ -58,21 +58,26 @@ if($customers) {
 	$chaos->debugMode=true;
 	$chaos->table('customers', 1000)
 		->setDb($db)
+		->field('fixedid','int','local',5)
 		->field('idcustomer', 'int','identity', 0, 0, 1000)
 		->field('name', 'string', 'database', '', 0, 45)
 			->retry()
 		->field('datecreation', 'datetime', 'database', $chaos->now())
 		//->setArray('namemale', PersonContainer::$firstNameMale)
-		->setArray('lastname', PersonContainer::$lastName)
-		->setArrayFromDBTable('namemale','sakila.actor','first_name')
+		//->setArray('lastname', PersonContainer::$lastName)
+		//->setArrayFromDBTable('namemale','sakila.actor','first_name')
+		->setArrayFromDBQuery('namemale','select first_name from sakila.actor')
+		->setArrayFromDBQuery('lastname','select last_name from sakila.actor where actor_id={{fixedid}}',[1])
+		//->setArrayFromDBQuery('lastname','select last_name from sakila.actor where actor_id>?',[1],['i',1])
 		->setArray('namefemale', PersonContainer::$firstNameFemale)
 		->setFormat('fullnameformat', ['{{namemale}} {{lastname}}', '{{namefemale}} {{lastname}}'])
 		->gen('when always set datecreation.speed=random(5000,86400)')
 		->gen('when always set name.value=randomformat("fullnameformat")')
-		->insert(true)
+		->run(true)
+		//->insert(true)
 		->stat()
 		->show(['name', 'datecreation']);
-
+	die(1);
 }
 if($products) {
 	$chaos = new ChaosMachineOne();

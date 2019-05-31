@@ -16,6 +16,7 @@ use Exception;
 class ChaosMachineOne
 {
 	private $dictionary=[];
+	private $dictionaryProportional=[];
 	var $debugMode=false;
 	private $pipeFieldName=null;
 	private $pipeFieldType=null;
@@ -26,8 +27,8 @@ class ChaosMachineOne
 	private $miniLang;
 	/** @var PdoOne */
 	private $db=null;
-	private $arrays=[];
-	private $arraysProportional=[];
+
+	
 	private $formats=[];
 	private $formatsProportional=[];
 	private $table;
@@ -100,11 +101,11 @@ class ChaosMachineOne
 		$first_key = key($value);
 		if(is_numeric($first_key)) {
 			// It is not an associative array so we converted into an associative array
-			if (isset($this->arrays[$name])) {
+			if (isset($this->dictionary[$name])) {
 				trigger_error("arrays[$name] is already defined");
 			}
-			//$this->arrays[$name] = $value;
-			//$this->arraysProportional[$name] = null;
+			//$this->dictionary[$name] = $value;
+			//$this->dictionaryProportional[$name] = null;
 			$numValue=count($value);
 			$tmp=$value;
 			if (is_string($probability)) {
@@ -143,13 +144,13 @@ class ChaosMachineOne
 		}
 		//it's a associative array. The value is the proportion
 		//[a=>10,b=>20,c=>30] => [a,b,c] [10,30,60] (0..9=a,10..29=b,30..60=c)
-		$this->arraysProportional[$name]=[];
-		$this->arrays[$name]=[];
+		$this->dictionaryProportional[$name]=[];
+		$this->dictionary[$name]=[];
 		$sum=0;
 		foreach($value as $k=>$v) {
 			$sum+=$v;
-			$this->arrays[$name][]=$k;
-			$this->arraysProportional[$name][]=$sum;
+			$this->dictionary[$name][]=$k;
+			$this->dictionaryProportional[$name][]=$sum;
 		}
 	
 		return $this;
@@ -176,14 +177,17 @@ class ChaosMachineOne
 	}
 
 	/**
+	 * Retrusn the first column of a query
+	 * Example ->setArrayFromDBQuery('myarray','select * from table');
 	 * @param string $name name of the array
 	 * @param string $query example: select col from table
 	 * @param array $probability
+	 * @param null|array $queryParam
 	 * @return ChaosMachineOne
 	 */
-	public function setArrayFromDBQuery($name,$query,$probability=[1]) {
+	public function setArrayFromDBQuery($name,$query,$probability=[1],$queryParam=null) {
 		try {
-			$values=$this->db->runRawQuery($query, null, true);
+			$values=$this->db->runRawQuery($this->parseFormat($query), $queryParam, true);
 			$result=[];
 			foreach($values as $val) {
 				$result[]=reset($val); // first element of the array
@@ -267,6 +271,7 @@ class ChaosMachineOne
 	/**
 	 * We then the evaluation
 	 * @param bool $storeCache
+	 * @return ChaosMachineOne
 	 */
 	public function run($storeCache=false) {
 		if ($storeCache) $this->cacheResult=[]; // deleted the cache
@@ -292,6 +297,7 @@ class ChaosMachineOne
 				}
 			}
 		}
+		return $this;
 	}
 	public function startBody() {
 		if ($this->bodyLoad) return;
@@ -476,8 +482,14 @@ class ChaosMachineOne
 	public function debug($msg) {
 		if($this->debugMode) echo $msg."<br>";
 	}
-	public function isNullable($bool) {
-		//todo: no implementado
+
+	/**
+	 * If true then this value is nullable.
+	 * @param bool $bool
+	 * @return $this
+	 */
+	public function isNullable($bool=true) {
+		$this->dictionary[$this->pipeFieldName]->allowNull=$bool;
 		return $this;
 	}
 
@@ -920,6 +932,11 @@ class ChaosMachineOne
 	#endregion
 	#region fixed function
 	
+	public function randommaskformat($formatName,$arrayName='') {
+		$txt=$this->randomformat($formatName);
+		return $this->randommask($txt,$arrayName);
+	}
+	
 	const NUM_OPT=[0,1,2,3,4,5,6,7,8,9,''];
 	const NUM=[0,1,2,3,4,5,6,7,8,9,' '];
 	const ALPHA=['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
@@ -1028,14 +1045,14 @@ class ChaosMachineOne
 		}
 		if ($index===null) $index=$this->dictionary['_index'];
 
-		if (!$this->arrays[$arrayName][$index]) {
+		if (!$this->dictionary[$arrayName][$index]) {
 			trigger_error("Array [$arrayName] exists but [$index] is not defined.");
 			return "";
 		}
-		return $this->arrays[$arrayName][$index];
+		return $this->dictionary[$arrayName][$index];
 	}
 	public function isArray($arrayName) {
-		return isset($this->arrays[$arrayName]);
+		return isset($this->dictionaryProportional[$arrayName]);
 	}
 	public function isFormat($formatName) {
 		return isset($this->formats[$formatName]);
@@ -1052,9 +1069,9 @@ class ChaosMachineOne
 			trigger_error("Array [$arrayName] not defined");
 			return "";
 		}
-		if ($this->arraysProportional[$arrayName]!=null) {
+		if ($this->dictionaryProportional[$arrayName]!=null) {
 			// its an array proportional ['value1'=>30,'value2'=>20...]
-			$ap=$this->arraysProportional[$arrayName];
+			$ap=$this->dictionaryProportional[$arrayName];
 			$max=end($ap);
 			$idPos=rand(0,$max);
 			$idx=0;
@@ -1065,13 +1082,13 @@ class ChaosMachineOne
 				}
 			}
 		} else {
-			$c = count($this->arrays[$arrayName]);
+			$c = count($this->dictionary[$arrayName]);
 			$idx = rand(0, $c - 1);
 		}
 		if ($fieldName == null) {
-			return $this->arrays[$arrayName][$idx];
+			return $this->dictionary[$arrayName][$idx];
 		} else {
-			return $this->arrays[$arrayName][$idx]->{$fieldName};
+			return $this->dictionary[$arrayName][$idx]->{$fieldName};
 		}
 	}
 	public function randomformat($formatName) {
@@ -1112,7 +1129,7 @@ class ChaosMachineOne
 		}
 	}
 	public function randomtext($startLorem='Lorem ipsum dolor',$arrayName='',$paragraph=false,$nWordMin=20,$nWordMax=40) {
-		$array=$this->arrays[$arrayName];
+		$array=$this->dictionary[$arrayName];
 		if($startLorem!=='') {
 			$counter=3;
 			$u=false;

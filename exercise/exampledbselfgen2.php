@@ -49,10 +49,15 @@ $chaos->table('auditorias', 15000)
 	->isnullable(true)
 	->field('IdBA', 'int','database')
 	->isnullable(true)
+	// extras
+	->setFormat('f_phones',['0#########','(##)-0#########'])
+	->setArray('a_lorem',PersonContainer::$loremIpsum)
+	// end extras
 	->field('IdDTH', 'int','database')
 	->isnullable(true)
 	->field('IdFO', 'int','database')
 	->isnullable(true)
+	
 	->field('FechaIngreso', 'datetime','database',$chaos->date('2010-01-01 00:00'))
 	->isnullable(true)
 	->field('Rutauditor', 'string','database','',0,12)
@@ -99,13 +104,13 @@ $chaos->table('auditorias', 15000)
 	->gen('when always set Rutauditor.value=randomarray("array_Rutauditor")')
 	->gen('when FechaAtencion.month<10 set FechaAtencion.speed=random(3600,86400)')
 	->gen('when FechaIngreso.month<10 set FechaIngreso.speed=random(3600,86400)')
-	->gen('when always set Peticion.value=random(0,50)')
-	->gen('when always set Telefono.value=random(0,50)')
-	->gen('when always set Observaciones.value=random(0,50)')
+	->gen('when always set Peticion.value=random(0,50)') /** @see ChaosMachineOne::random */
+	->gen('when always set Telefono.value=randommaskformat("f_phones")') /** @see ChaosMachineOne::randommask */
+	->gen('when always set Observaciones.value=randomtext("","a_lorem")') /** @see ChaosMachineOne::randomtext */
 
 	->gen('when FechaAtencion.month>=10 set FechaAtencion.speed=random(900,21600)')
 	->gen('when FechaIngreso.month>=10 set FechaIngreso.speed=random(900,21600)')
 	->gen('when FechaAtencion.weekday>5 set FechaAtencion.speed=random(1600,36400)') // mas atenciones el fin de semana
 	->gen('when FechaIngreso.weekday>5 set FechaIngreso.speed=random(1600,36400)') // mas atenciones el fin de semana
-	->insert(true)
-	->show(['FechaAtencion','FechaIngreso']);
+	//->insert(true)
+	->show(['FechaAtencion','FechaIngreso','Telefono','Observaciones']);
