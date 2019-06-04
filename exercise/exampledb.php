@@ -106,7 +106,7 @@ if($sales || 1==1 ) {
 		->field('date', 'datetime', 'database', $chaos->now())
 		->gen('when date.weekday>=1 and date.weekday<=5 then date.speed=random(5000,50000)') // workingdays are slow
 		->gen('when date.weekday>=6  then date.speed=random(3000,10000)') // the weekend sells more
-		->gen('when date.hour>18 then date.skip="day" and date.add="8h"') // if night then we jump to the next day (8am)
+		->gen('when date.hour>18 then date.skip="day" and date.add="8h"') // if night then we jump to the next day (8am), i.e. no sales
 		->gen('when always then idproduct.value=random(1,$countProducts) 
 		and idcustomer.value=random(1,1000) and amount.value=random(1,10)')
 		->show(['idproduct','idcustomer','amount','date'])
