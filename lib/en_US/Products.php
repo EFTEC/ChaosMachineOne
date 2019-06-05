@@ -1,7 +1,7 @@
 <?php
 class Products {
 	
-	public static $products=['Ambasa',
+	public static $softDrink=['Ambasa',
 		'Ameyal',
 		'Appletiser',
 		'Aquarius',

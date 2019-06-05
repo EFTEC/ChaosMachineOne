@@ -3,6 +3,7 @@ namespace eftec\chaosmachineone;
 use eftec\PdoOne;
 use eftec\minilang\MiniLang;
 use Exception;
+use PDO;
 
 
 /**
@@ -23,6 +24,8 @@ class ChaosMachineOne
 	private $pipeFieldTypeSize=null;
 	private $pipeFieldSpecial=null;
 	private $pipeValue=null;
+	private $showTable=false;
+	private $tableCols=[];
 	/** @var MiniLang */
 	private $miniLang;
 	/** @var PdoOne */
@@ -33,6 +36,8 @@ class ChaosMachineOne
 	private $formatsProportional=[];
 	private $table;
 	private $maxId;
+	private $queryTable="";
+	private $queryPrefix='origin_';
 	private $daysWeek=['','monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 	private $bodyLoad=false;
 	
@@ -171,8 +176,10 @@ class ChaosMachineOne
 				$result[]=reset($val); // first element of the array
 			}
 		} catch (Exception $e) {
+
 			$result=[];
 		}
+
 		return $this->setArray($name,$result,$probability);
 	}
 
@@ -275,9 +282,49 @@ class ChaosMachineOne
 	 */
 	public function run($storeCache=false) {
 		if ($storeCache) $this->cacheResult=[]; // deleted the cache
-		for($i=0;$i<$this->maxId;$i++) {
+		if ($this->showTable) {
+			$this->tableHead();
+		}
+		if($this->queryTable) {
+			if ($this->db===null) {
+				$this->debug('WARNING: No database is set');
+				return $this;
+			}
+			/** @var \PDOStatement $statement */
+			try {
+				$statement = $query = $this->db->runRawQuery($this->queryTable, null, false);
+			} catch (Exception $e) {
+				if($this->debugMode) {
+					$this->debug($e->getMessage());
+				}
+			}
+			$maxId=PHP_INT_MAX; // infinite loop
+		} else {
+			$statement=null;
+			$maxId=$this->maxId;
+		}
+		for($i=0;$i<$maxId;$i++) {
+			if($this->queryTable) {
+				try {
+					$row = $statement->fetch(PDO::FETCH_ASSOC);
+				} catch (Exception $e) {
+					if($this->debugMode) {
+						$this->debug($e->getMessage());
+					}
+				}
+				if ($row===false) {
+					break; // break for.
+				}
+				foreach($row as $key2=>$value2) {
+					$this->field($this->queryPrefix.$key2,'string','local',$value2);
+					echo "setting ".$this->queryPrefix.$key2." = $value2<br>";
+				}
+
+			}
+			
+			
 			$this->dictionary['_index'] = $i;
-			$this->miniLang->evalAllLogic( false);
+			$this->miniLang->evalAllLogic(false);
 			$this->cleanAndCut();
 			if ($storeCache) {
 				$tmp=[];
@@ -296,6 +343,13 @@ class ChaosMachineOne
 					$obj->reEval();
 				}
 			}
+			if ($this->showTable) {
+				//$this->dictionary=$tmp;
+				$this->tableRow();
+			}
+		}
+		if ($this->showTable) {
+			$this->tableFooter();
 		}
 		return $this;
 	}
@@ -315,21 +369,61 @@ class ChaosMachineOne
 	public function endBody() {
 		echo "</div></div></div></body></html>";
 	}
+	private function tableHead() {
+		$cols=$this->tableCols;
+		$this->startBody();
+		echo "<table class='table table-striped table-sm'>";
+		echo "<thead class='thead-dark'><tr>";
+		foreach($cols as $col) {
+			if(isset($this->dictionary[$col]->name)) {
+				echo "<th>".$this->dictionary[$col]->name."</th>";
+			} else {
+				echo "<th>($col)</th>";
+			}
+		}
+		echo "</tr></thead>";
+		echo "<tbody>";
+	}
+	private function tableRow() {
+		$cols=$this->tableCols;
+		echo "<tr>\n";
+		foreach($cols as $col) {
+			echo "<td>";
+			switch ($this->dictionary[$col]->type) {
+				case 'datetime':
+					echo date('Y-m-d H:i:s l(N)', $this->dictionary[$col]->curValue) . "<br>";
+					break;
+				case 'int':
+				case 'decimal':
+					echo $this->showNull($this->dictionary[$col]->curValue);
+					break;
+				case 'string':
+					echo $this->showNull($this->dictionary[$col]->curValue);
+					break;
+			}
+			echo "</td>\n";
+			$this->dictionary[$col]->reEval();
+		}
+		echo "</tr>\n";
+	}
+	private function tableFooter() {
+		echo "</tbody>\n";
+		echo "</table>\n";
+
+	}
+	public function showTable($columns,$show=true) {
+		$this->tableCols=$columns;
+		$this->showTable=$show;
+		return $this;
+	}
 
 	/**
 	 * It shows the cache (if any)
 	 * @param $cols
 	 * @return $this
 	 */
-	public function show($cols) {
-		$this->startBody();
-		echo "<table class='table'>";
-		echo "<thead><tr>";
-		foreach($cols as $col) {
-			echo "<th>".$this->dictionary[$col]->name."</th>";
-		}
-		echo "</tr></thead>";
-		echo "<tbody>";
+	public function show() {
+		$this->tableHead();
 		for($i=0;$i<$this->maxId;$i++) {
 			$this->dictionary['_index'] = $i;
 			if ($this->cacheResult!=null) {
@@ -339,28 +433,10 @@ class ChaosMachineOne
 				
 				$this->cleanAndCut();
 			}
-			echo "<tr>\n";
-			foreach($cols as $col) {
-				echo "<td>";
-				switch ($this->dictionary[$col]->type) {
-					case 'datetime':
-						echo date('Y-m-d H:i:s l(N)', $this->dictionary[$col]->curValue) . "<br>";
-						break;
-					case 'int':
-					case 'decimal':
-						echo $this->showNull($this->dictionary[$col]->curValue);
-						break;
-					case 'string':
-						echo $this->showNull($this->dictionary[$col]->curValue);
-						break;
-				}
-				echo "</td>\n";
-				$this->dictionary[$col]->reEval();
-			}
-			echo "</tr>\n";
+			$this->tableRow();
+			
 		}
-		echo "</tbody>\n";
-		echo "</table>\n";
+		$this->tableFooter();
 		return $this;
 	}
 
@@ -385,11 +461,48 @@ class ChaosMachineOne
 	 */
 	public function insert($storeCache=false,$echoProgress=null,$continueOnError=false,$maxRetry=3) {
 		if ($storeCache) $this->cacheResult=[]; // deleted the cache
+		if ($this->showTable) {
+			$this->tableHead();
+		}
 		if ($this->db===null) {
 			$this->debug('WARNING: No database is set');
 			return $this;
 		}
-		for($i=0;$i<$this->maxId;$i++) {
+		if($this->queryTable) {
+			if ($this->db===null) {
+				$this->debug('WARNING: No database is set');
+				return $this;
+			}
+			try {
+				/** @var \PDOStatement $statement */
+				$statement = $query = $this->db->runRawQuery($this->queryTable, null, false);
+			} catch (Exception $e) {
+				if($this->debugMode) {
+					$this->debug($e->getMessage());
+				}
+			}
+			$maxId=PHP_INT_MAX; // infinite loop
+		} else {
+			$statement=null;
+			$maxId=$this->maxId;
+		}
+		for($i=0;$i<$maxId;$i++) {
+			if($this->queryTable) {
+				try {
+					$row = $statement->fetch(PDO::FETCH_ASSOC);
+				} catch (Exception $e) {
+					if($this->debugMode) {
+						$this->debug($e->getMessage());
+					}
+				}
+				if ($row===false) {
+					break; // break for.
+				}
+				foreach($row as $key2=>$value2) {
+					$this->dictionary[$this->queryPrefix.$key2]=$value2;
+				}
+
+			}
 			if ($echoProgress) {
 				echo sprintf($echoProgress,$i);
 				@flush();
@@ -441,8 +554,14 @@ class ChaosMachineOne
 						die(1);
 					}
 				}
+				if ($this->showTable) {
+					$this->tableRow();
+				}
 			} // while retry
 		} // for
+		if ($this->showTable) {
+			$this->tableFooter();
+		}
 		return $this;
 	}
 
@@ -695,11 +814,33 @@ class ChaosMachineOne
 		$this->pipeFieldTypeSize=null;
 		$this->pipeFieldSpecial=null;
 		$this->pipeValue=null;
+		$this->showTable=false;
 	}
-	public function table($table, $maxId)
+
+	/**
+	 * It starts the flow with a table.
+	 * @param string $table name of the table
+	 * @param int|string $conditions
+	 * <p>if it is int then it sets the number of rows to generate.</p>
+	 * <p>if it is string then it sets a table to read</p>
+	 * <p>Example: table('customers','select * from people','prefix')<p>
+	 * @param string $prefix prefix of the rows to read
+	 * @return $this
+	 */
+	public function table($table, $conditions,$prefix='origin_')
 	{
 		$this->table=$table;
-		$this->maxId=$maxId;
+		if(is_int($conditions)) {
+			$this->maxId=$conditions;
+			$this->queryTable=null;
+			$this->queryPrefix=null;
+		} else {
+			$this->maxId=-1;
+			if(stripos($conditions,'select')===false) $conditions="select * from $conditions"; // is the table name
+			$this->queryTable=$conditions;
+			$this->queryPrefix=$prefix;
+		}
+		
 		$this->cacheResult=null;
 		return $this;
 	}
@@ -1069,6 +1210,10 @@ class ChaosMachineOne
 			trigger_error("Array [$arrayName] not defined");
 			return "";
 		}
+		if (count($this->dictionary[$arrayName])===0) {
+			// empty array
+			return "";
+		}
 		if ($this->dictionaryProportional[$arrayName]!=null) {
 			// its an array proportional ['value1'=>30,'value2'=>20...]
 			$ap=$this->dictionaryProportional[$arrayName];
@@ -1085,6 +1230,7 @@ class ChaosMachineOne
 			$c = count($this->dictionary[$arrayName]);
 			$idx = rand(0, $c - 1);
 		}
+	
 		if ($fieldName == null) {
 			return $this->dictionary[$arrayName][$idx];
 		} else {
