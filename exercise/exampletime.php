@@ -21,11 +21,14 @@ $chaos->setDictionary('_index',100);
 
 $chaos->table('table',1000)
 	->field('time','datetime','database',$chaos->now(),0,200)
+    ->field('day','string','local','',0,20)
 	->gen('when _index=0 then time.speed=3600') // speed is an hour
 	->gen('when time.weekday=5 and time.hour>17 then time.skip="monday" and time.add="8h"') // we skip to the next monday
 	->gen('when time.weekday>=1 and time.weekday<=5 then time.speed=random(1000,3600)') 
-	->show(['time'])
-	->stat();
+    ->gen('when always() then day.value=time.weekday')
+	->showTable(['time','day'],true)
+	->stat()
+    ->run();
 	
 	
 	

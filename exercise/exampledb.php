@@ -76,7 +76,7 @@ if($customers) {
 		->run(true)
 		//->insert(true)
 		->stat()
-		->show(['name', 'datecreation']);
+		->show();
 	die(1);
 }
 if($products) {

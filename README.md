@@ -1,11 +1,12 @@
 # ChaosMachineOne for PHP
-A controlled random generator data for PHP. It doesn't chart visually, the 
-objective is to generate values to store into the database (mysql)  
+A controlled random generator data for PHP. The objective is to generate and fill random values
+ to Mysql (and Sql server) with some trend, so the values are not as random for to be usable.
+
 
 [![Build Status](https://travis-ci.org/EFTEC/ChaosMachineOne.svg?branch=master)](https://travis-ci.org/EFTEC/ChaosMachineOne)
 [![Packagist](https://img.shields.io/packagist/v/eftec/ChaosMachineOne.svg)](https://packagist.org/packages/eftec/chaosmachineone)
 [![Total Downloads](https://poser.pugx.org/eftec/chaosmachineone/downloads)](https://packagist.org/packages/eftec/chaosmachineone)
-[![Maintenance](https://img.shields.io/maintenance/yes/2019.svg)]()
+[![Maintenance](https://img.shields.io/maintenance/yes/2020.svg)]()
 [![composer](https://img.shields.io/badge/composer-%3E1.6-blue.svg)]()
 [![php](https://img.shields.io/badge/php->5.6-green.svg)]()
 [![php](https://img.shields.io/badge/php-7.x-green.svg)]()
@@ -51,6 +52,10 @@ objective is to generate values to store into the database (mysql)
 
 Sometimes we want to generate fake values for the database that are controlled and 
 consistent. So, this library tries to create an ordered chaos. 
+
+While there are libraries to generate random values (such as fzaninotto/Faker), the objective of this library is to fill tables with random but credible/with a trend value.
+
+
 
 [Medium Article](https://medium.com/cook-php/chaos-and-control-or-the-art-of-randomness-40e04662a81e)
 
@@ -410,6 +415,9 @@ It sets an array.  If the array is associative, then the value is the probabilit
 ->setArray('arrayname',['a'=>80,'b'=>10,'c'=>10]) // it sets an array with 3 values with the changes of a(80%),b(10%) and c(10%)
 ```
 
+> Note: arrays and variables share the same space of memory.
+
+
 ### ->setFormat('formatName',[])
 
 It sets a format (template) to merge different arrays.  
@@ -484,9 +492,90 @@ It copies a file from a location to another.
 ->gen('when always set ImageDestination.copyfilefrom=ImageSource.getvalue')
 ```
 
+## Database
 
+This library allows to interact directly with the database, reading and inserting information.
+
+For example, let's say the next exercise:
+
+```php
+$db=new PdoOne("mysql","localhost","root","abc.123","chaosdb"); // connect to mysql
+$db->open(); // it opens the connection
+
+$chaos = new ChaosMachineOne();
+$chaos->debugMode=true;
+$chaos->table('SOMETABLE', 1000) // we will work with the table SOMETABLE
+    ->setDb($db) // we indicates to our library to use the connection to the database
+    ->field('fixedid','int','local',5) // we created a field (local), it will not be stored in the database
+    ->field('idcustomer', 'int','identity', 0, 0, 1000) // we created a field (database), however it is identity so it will not be stored in the database
+    ->field('name', 'string', 'database', '', 0, 45) // this field will be stored in the database
+    //...
+    ->insert(true); // finally we insert the new values (1000 values) : insert into SOMETABLE (name) values(...);
+```
+
+### table($table, $conditions,$prefix='origin_')
+
+It sets the working table.
+
+* $table = it is the name of the table
+* $conditions (int) = It could indicates the number of rows to generate.
+* $conditions (string) = it indicates the table (or query) to use as "origin"
+* $prefix (string) = it sets a prefix value.
+
+```php
+$chaos->table('SOMETABLE', 1000) // insert 1000 rows into SOMETABLE
+$chaos->table('SOMETABLE', 'ORIGINTABLE') // insert "n" rows into SOMETABLE. "n" depends in the number of rows of ORIGINTABLE.
+$chaos->table('SOMETABLE', 'select * from ORIGINTABLE') // insert "n" rows into SOMETABLE. "n" depends in the number of rows of ORIGINTABLE.
+
+```
+
+### insert($storeCache=false,$echoProgress=null,$continueOnError=false,$maxRetry=3)
+
+Insert random values into the database.
+
+* $storecache = if true then it inserts a value and it stores its value into memory.
+* $echoProgress = (printf format) if it is not empty then it shows the progress (echo)
+* $continueOnError = if true then it continues if insert fails.
+* $maxRetry = number of retries (if insert fails)
+
+### setArrayFromDBQuery($name,$query,$probability=[1],$queryParam=null)
+
+It sets an array using a query
+
+* $name = name of the array
+* $query = source query of the original values. It must returns a single column.
+* $probability = array of probability. If [1] it means 100% for each value, [80,20] means 80% for the first half values of the array and 20% for the second half.
+* $queryParam = (optional) parameters of the query.
+
+
+```php
+->setArrayFromDBQuery('namemale','select first_name from sakila.actor')
+->setArrayFromDBQuery('lastname','select last_name from sakila.actor where actor_id={{fixedid}}',[1])
+```
+
+> Note: arrays and variables share the same space of memory.
+
+### setArrayFromDBTable($name,$table,$column,$probability=[1])
+
+It sets an array using a table
+
+* $name = name of the array
+* $query = source query of the original values. It must returns a single column.
+* $probability = array of probability. If [1] it means 100% for each value, [80,20] means 80% for the first half values of the array and 20% for the second half.
+* $queryParam = (optional) parameters of the query.
+
+
+```php
+->setArrayFromDBTable('namemale','sakila.actor','first_name')
+->setArrayFromDBTable('lastname','sakila.actor','first_name',[1])
+```
+
+> Note: arrays and variables share the same space of memory.
 
 ## version
+* 1.7 2020-04-09 Updated Dependency eftec/pdoone (1.19 => 1.28.1)
+* 1.6 Added function showTable() and show()
+* 1.5 Updated MiniLang 2.12 -> 2.14
 * 1.4 We could run ->insert(true)->show() at the same time. Insert(true) will keep the values (so we could show it without recalculating)
 * 1.3 Now it could copy files.
    New method arrayFromFolder() reads all files of a folder.  
@@ -495,3 +584,11 @@ It copies a file from a location to another.
 * 1.2 Some cleanup.
 * 1.1 Now Minilib is a external library   
 * 1.0 First open source version   
+
+## License
+
+Dual License
+
+LGPL-V3 and Commercial License.
+
+Copyright Jorge Patricio Castro Castillo (2018)

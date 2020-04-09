@@ -46,7 +46,8 @@ function fn2($caller,$tmp2) {
 }
 
 //$x1='when wait';
-$miniLang=new MiniLang(['wait'],['timeout','fulltimeout'],new ServiceClass());
+$area=['timeout','fulltimeout'];
+$miniLang=new MiniLang(['wait'],$area,new ServiceClass());
 $miniLang->separate($x1);
 
 

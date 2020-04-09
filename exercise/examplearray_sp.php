@@ -1,4 +1,4 @@
-<?php
+<?php /** @noinspection PhpUndefinedClassInspection */
 
 use eftec\chaosmachineone\ChaosMachineOne;
 
@@ -8,7 +8,7 @@ include "../vendor/autoload.php";
 $chaos=new ChaosMachineOne();
 $chaos->setDictionary('_index',100);
                                    
-include "../lib/en_US/Person.php";
+include "../lib/es_ES/Person.php";
 
 
 
@@ -38,7 +38,7 @@ $chaos->table('table',1000)
 	->setArray('loremIpsum',PersonContainer::$loremIpsum)
 	->setArray('domains',PersonContainer::$domains)
 	->setArray('prefixarray',[''=>70,'Dr.'=>10,'Phd.'=>20]) //70% change of no prefix, 10% of Dr. and 20% of PhD
-	->setFormat('maleNameFormats',PersonContainer::$maleNameFormats) 
+	->setFormat('maleNameFormats',PersonContainer::$maleNameFormats) //    '{{titleMale}} {{firstNameMale}} {{lastName}}',
 	->setFormat('femaleNameFormats',PersonContainer::$femaleNameFormats) 
 	->setFormat('formatProp',['{{firstNameMale}}'=>80,'{{suffix}} {{firstNameMale}}'=>20]) // 80% only name, 20% suffix and name
 	->gen('when always then sex=random(0,1)')

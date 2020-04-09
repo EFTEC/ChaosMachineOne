@@ -1,16 +1,19 @@
-<?php
+<?php /** @noinspection PhpUnused */
+
+/** @noinspection DuplicatedCode */
+
 namespace eftec\chaosmachineone;
 use eftec\PdoOne;
 use eftec\minilang\MiniLang;
 use Exception;
 use PDO;
-
+use PDOStatement;
 
 /**
  * Class ChaosMachineOne
  * @package eftec\chaosmachineone
  * @author   Jorge Patricio Castro Castillo <jcastro arroba eftec dot cl>
- * @version 1.5 2019-05-21
+ * @version 1.7 2020-04-09
  * @link https://github.com/EFTEC/ChaosMachineOne
  * @license LGPL v3 (or commercial if it's licensed)
  */
@@ -18,6 +21,13 @@ class ChaosMachineOne
 {
 	private $dictionary=[];
 	private $dictionaryProportional=[];
+    /**
+     * @var array This array keeps the values obtained from an array per line of operation.<br>
+     *            It creates consistence with the information read per line.<br>
+     *            Example:  If we want to generate a random name and a random full name. <br>
+     *                      The fullname must repeats the same name.
+     */ 
+    private $keepRandomArray=[];
 	var $debugMode=false;
 	private $pipeFieldName=null;
 	private $pipeFieldType=null;
@@ -57,12 +67,15 @@ class ChaosMachineOne
 	}
 
 	/**
-	 * @param string $index
-	 * @return ChaosField|mixed
+	 * @param string|null $indexName if null then it returns all dictionar
+	 * @return ChaosField|mixed|array
 	 */
-	public function getDictionary($index)
+	public function getDictionary($indexName=null)
 	{
-		return $this->dictionary[$index];
+		if ($indexName===null) {
+			return $this->dictionary;
+		}
+		return $this->dictionary[$indexName];
 	}
 
 	/**
@@ -189,7 +202,7 @@ class ChaosMachineOne
 	 * @param string $name name of the array
 	 * @param string $query example: select col from table
 	 * @param array $probability
-	 * @param null|array $queryParam
+	 * @param null|array $queryParam 
 	 * @return ChaosMachineOne
 	 */
 	public function setArrayFromDBQuery($name,$query,$probability=[1],$queryParam=null) {
@@ -285,12 +298,12 @@ class ChaosMachineOne
 		if ($this->showTable) {
 			$this->tableHead();
 		}
-		if($this->queryTable) {
+		if(is_string($this->queryTable)) {
 			if ($this->db===null) {
 				$this->debug('WARNING: No database is set');
 				return $this;
 			}
-			/** @var \PDOStatement $statement */
+			/** @var PDOStatement $statement */
 			try {
 				$statement = $query = $this->db->runRawQuery($this->queryTable, null, false);
 			} catch (Exception $e) {
@@ -304,10 +317,12 @@ class ChaosMachineOne
 			$maxId=$this->maxId;
 		}
 		for($i=0;$i<$maxId;$i++) {
-			if($this->queryTable) {
+		    $this->keepRandomArray=[];
+			if(is_string($this->queryTable)) {
 				try {
 					$row = $statement->fetch(PDO::FETCH_ASSOC);
 				} catch (Exception $e) {
+                    $row=false;
 					if($this->debugMode) {
 						$this->debug($e->getMessage());
 					}
@@ -317,9 +332,12 @@ class ChaosMachineOne
 				}
 				foreach($row as $key2=>$value2) {
 					$this->field($this->queryPrefix.$key2,'string','local',$value2);
-					echo "setting ".$this->queryPrefix.$key2." = $value2<br>";
+					
 				}
-
+			}
+			if(is_array($this->queryTable)) {
+				$this->field($this->queryPrefix,'string','local',$this->queryTable[$i]);
+				//echo "setting ".$this->queryPrefix." = ".$this->queryTable[$i]."<br>";
 			}
 			
 			
@@ -340,6 +358,7 @@ class ChaosMachineOne
 			}
 			foreach($this->dictionary as &$obj) {
 				if($this->isChaosField($obj)) {
+				    /** @var $obj ChaosField */
 					$obj->reEval();
 				}
 			}
@@ -361,7 +380,7 @@ class ChaosMachineOne
 		  <head>
 		    <meta charset='utf-8'>
 		    <meta name='viewport' content='width=device-width, initial-scale=1, shrink-to-fit=no'>
-		    <link rel='stylesheet' href='https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css' integrity='sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO' crossorigin='anonymous'>
+            <link rel=\"stylesheet\" href=\"https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css\" integrity=\"sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh\" crossorigin=\"anonymous\">		   
 		    <title>Show table</title>
 		  </head>
 		  <body><div class='container-fluid>'><div class='row'><div class='col'>";
@@ -394,14 +413,13 @@ class ChaosMachineOne
 					echo date('Y-m-d H:i:s l(N)', $this->dictionary[$col]->curValue) . "<br>";
 					break;
 				case 'int':
-				case 'decimal':
+                case 'string':
+                case 'decimal':
 					echo $this->showNull($this->dictionary[$col]->curValue);
 					break;
-				case 'string':
-					echo $this->showNull($this->dictionary[$col]->curValue);
-					break;
-			}
+            }
 			echo "</td>\n";
+            /** @var $this->dictionary ChaosField[] */
 			$this->dictionary[$col]->reEval();
 		}
 		echo "</tr>\n";
@@ -417,11 +435,11 @@ class ChaosMachineOne
 		return $this;
 	}
 
-	/**
-	 * It shows the cache (if any)
-	 * @param $cols
-	 * @return $this
-	 */
+    /**
+     * It shows the cache (if any)
+     *
+     * @return $this
+     */
 	public function show() {
 		$this->tableHead();
 		for($i=0;$i<$this->maxId;$i++) {
@@ -468,13 +486,13 @@ class ChaosMachineOne
 			$this->debug('WARNING: No database is set');
 			return $this;
 		}
-		if($this->queryTable) {
+		if(is_string($this->queryTable)) {
 			if ($this->db===null) {
 				$this->debug('WARNING: No database is set');
 				return $this;
 			}
 			try {
-				/** @var \PDOStatement $statement */
+				/** @var PDOStatement $statement */
 				$statement = $query = $this->db->runRawQuery($this->queryTable, null, false);
 			} catch (Exception $e) {
 				if($this->debugMode) {
@@ -487,10 +505,11 @@ class ChaosMachineOne
 			$maxId=$this->maxId;
 		}
 		for($i=0;$i<$maxId;$i++) {
-			if($this->queryTable) {
+			if(is_string($this->queryTable)) {
 				try {
 					$row = $statement->fetch(PDO::FETCH_ASSOC);
 				} catch (Exception $e) {
+                    $row=false;
 					if($this->debugMode) {
 						$this->debug($e->getMessage());
 					}
@@ -499,9 +518,12 @@ class ChaosMachineOne
 					break; // break for.
 				}
 				foreach($row as $key2=>$value2) {
-					$this->dictionary[$this->queryPrefix.$key2]=$value2;
+					$this->field($this->queryPrefix.$key2,'string','local',$value2);
+					echo "setting ".$this->queryPrefix.$key2." = $value2<br>";
 				}
-
+			}
+			if(is_array($this->queryTable)) {
+				$this->field($this->queryPrefix,'string','local',$this->queryTable[$i]);
 			}
 			if ($echoProgress) {
 				echo sprintf($echoProgress,$i);
@@ -529,6 +551,7 @@ class ChaosMachineOne
 				}
 				foreach ($this->dictionary as &$obj) {
 					if ($this->isChaosField($obj)) {
+                        /** @var $obj ChaosField */
 						$obj->reEval();
 						if ($obj->special == 'database') {
 							if ($obj->type == 'datetime') {
@@ -662,10 +685,20 @@ class ChaosMachineOne
 		return $this;
 	}
 	public function speed(ChaosField $field,$v2=null) {
-		$field->curSpeed=$v2;
+		if(func_num_args()==1) {
+			return $field->curSpeed;
+		} else {
+			$field->curSpeed=$v2;
+			return null;
+		}
 	}
 	public function accel(ChaosField $field,$v2=null) {
-		$field->curAccel=$v2;
+		if(func_num_args()==1) {
+			return $field->curAccel;
+		} else {
+			$field->curAccel=$v2;
+			return null;
+		}
 	}
 	public function stop(ChaosField $field,$v2=null) {
 		$field->curSpeed=0;
@@ -703,8 +736,20 @@ class ChaosMachineOne
 	public function plus(ChaosField $field,$v2=null) {
 		$this->add($field,$v2);
 	}
+
+	/**
+	 * this function is used for setter and getter.
+	 * @param ChaosField $field
+	 * @param null $v2
+	 * @return int|null
+	 */
 	public function value(ChaosField $field,$v2=null) {
-		$field->curValue=$v2;
+		if(func_num_args()==1) {
+			return $field->curValue;
+		} else {
+			$field->curValue=$v2;
+			return null;
+		}
 	}
 
 	/**
@@ -820,25 +865,33 @@ class ChaosMachineOne
 	/**
 	 * It starts the flow with a table.
 	 * @param string $table name of the table
-	 * @param int|string $conditions
+	 * @param int|string|array $origin
 	 * <p>if it is int then it sets the number of rows to generate.</p>
 	 * <p>if it is string then it sets a table to read</p>
+	 * <p>if it is an array then it sets the array to loop</p>
 	 * <p>Example: table('customers','select * from people','prefix')<p>
-	 * @param string $prefix prefix of the rows to read
+	 * @param string $prefix prefix of the rows to read. If the origin is an array then it is used as the name of the variable
 	 * @return $this
 	 */
-	public function table($table, $conditions,$prefix='origin_')
+	public function table($table, $origin, $prefix='origin_')
 	{
 		$this->table=$table;
-		if(is_int($conditions)) {
-			$this->maxId=$conditions;
+		if(is_int($origin)) {
+			$this->maxId=$origin;
 			$this->queryTable=null;
 			$this->queryPrefix=null;
 		} else {
-			$this->maxId=-1;
-			if(stripos($conditions,'select')===false) $conditions="select * from $conditions"; // is the table name
-			$this->queryTable=$conditions;
-			$this->queryPrefix=$prefix;
+			if(is_array($origin)) {
+				$this->maxId=count($origin);
+				$this->queryTable=$origin;
+				$this->queryPrefix=$prefix;
+			} else {
+				$this->maxId=-1;
+				if(stripos($origin,'select')===false) $origin="select * from $origin"; // is the table name
+				$this->queryTable=$origin;
+				$this->queryPrefix=$prefix;
+			}
+			
 		}
 		
 		$this->cacheResult=null;
@@ -866,19 +919,15 @@ class ChaosMachineOne
 				} else {
 					$nullable=($column['isnullable'])?"\n\t\t\t->isnullable(true)":'';
 					switch ($coltype) {
-						case 'decimal':
+                        case 'datetime':
+                        case 'int':
+                        case 'decimal':
 							$code .= "\t\t->field('" . $column['colname'] . "', '" . $coltype . "','database')$nullable\n";
 							break;
-						case 'int':
-							$code .= "\t\t->field('" . $column['colname'] . "', '" . $coltype . "','database')$nullable\n";
-							break;
-						case 'string':
+                        case 'string':
 							$code .= "\t\t->field('" . $column['colname'] . "', '" . $coltype. "','database','',0,{$column['colsize']})$nullable\n";
 							break;
-						case 'datetime':
-							$code .= "\t\t->field('" . $column['colname'] . "', '" . $coltype . "','database')$nullable\n";
-							break;
-						default:
+                        default:
 							$code .= "\t\t // " . $column['colname'] . " type $coltype not defined\n";
 							break; 
 					}					
@@ -1019,14 +1068,34 @@ class ChaosMachineOne
 	public function createDate($dateTxt) {
 		return strtotime($dateTxt);
 	}
+
+    /**
+     * It creates a ramp value.
+     * 
+     * @param int|float $fromX
+     * @param int|float $toX
+     * @param int|float $fromY
+     * @param int|float $toY
+     *
+     * @return float|int
+     */
 	public function ramp($fromX, $toX, $fromY, $toY) {
 		$deltaX=$toX-$fromX; // 0 100 = 100
 		$deltaY=$toY-$fromY; // 0 10 = 10
 		$idx=$this->dictionary['_index']; // 10
 		$idxDelta=$idx-$fromX; // 10-0 = 10
-		$value=($deltaY/$deltaX) *$idxDelta + $fromY; // 10/100*10 = 1 200/990 x 100
-		return $value;
+		return ($deltaY/$deltaX) *$idxDelta + $fromY;         // 10/100*10 = 1 200/990 x 100
 	}
+
+    /**
+     * It creates a log value based in a range of values
+     * 
+     * @param int|float    $startX
+     * @param int|float   $startY
+     * @param int|float $scale
+     *
+     * @return float|int
+     */
 	public function log($startX,$startY,$scale=1) {
 		$idx=$this->dictionary['_index']; // 10
 		$idxDelta=$idx-$startX; // 10-0 = 10
@@ -1052,8 +1121,7 @@ class ChaosMachineOne
 	public function atan($centerX,$startY,$speed=1,$scale=1) {
 		$idx=$this->dictionary['_index']; // 10
 		$idxDelta=$idx-$centerX; // 10-0 = 10
-		$value = (atan($idxDelta*0.01745329251*$speed)*$scale ) + $startY;
-		return $value;
+        return (atan($idxDelta*0.01745329251*$speed)*$scale ) + $startY;
 	}
 	public function parabola($centerX, $startY, $scaleA=1, $scaleB=1, $scale=1) {
 		$idx=$this->dictionary['_index']; // 10
@@ -1061,11 +1129,32 @@ class ChaosMachineOne
 		$value = ($idxDelta*$idxDelta*$scaleA+ $idxDelta*$scaleB)*$scale + $startY;
 		return $value;
 	}
+
+    /**
+     * Bell generation of numbers.
+     * 
+     * @param     $centerX
+     * @param     $startY
+     * @param int $sigma
+     * @param int $scaleY
+     *
+     * @return float|int
+     */
 	public function bell($centerX, $startY, $sigma=1, $scaleY=1) {
 		$idx=$this->dictionary['_index']; // 10
 		$value = $this->normal($idx,$centerX,$sigma)*$scaleY+ $startY;
 		return $value;
 	}
+
+    /**
+     * It calculates the normal of a bell operation
+     * 
+     * @param $x
+     * @param $mu
+     * @param $sigma
+     *
+     * @return float|int
+     */
 	public function normal($x, $mu, $sigma) {
 		return exp(-0.5 * ($x - $mu) * ($x - $mu) / ($sigma*$sigma))
 			/ ($sigma * sqrt(2.0 * M_PI));
@@ -1200,8 +1289,8 @@ class ChaosMachineOne
 	}
 
 	/**
-	 * @param $arrayName
-	 * @param null $fieldName
+	 * @param string $arrayName The name contained in $this->dictionary.
+	 * @param null $fieldName [optional] the name of the field.
 	 * @param null|array|string $proportion
 	 * @return mixed|string
 	 */
@@ -1214,6 +1303,9 @@ class ChaosMachineOne
 			// empty array
 			return "";
 		}
+		if(isset($this->keepRandomArray[$arrayName])) {
+		    return $this->keepRandomArray[$arrayName]; // already calculated.
+        }
 		if ($this->dictionaryProportional[$arrayName]!=null) {
 			// its an array proportional ['value1'=>30,'value2'=>20...]
 			$ap=$this->dictionaryProportional[$arrayName];
@@ -1232,12 +1324,22 @@ class ChaosMachineOne
 		}
 	
 		if ($fieldName == null) {
+		    $this->keepRandomArray[$arrayName]=$this->dictionary[$arrayName][$idx];
 			return $this->dictionary[$arrayName][$idx];
 		} else {
+            $this->keepRandomArray[$arrayName]=$this->dictionary[$arrayName][$idx]->{$fieldName};
 			return $this->dictionary[$arrayName][$idx]->{$fieldName};
 		}
 	}
-	public function randomformat($formatName) {
+
+    /**
+     * @param      $formatName
+     *
+     * @param bool $usePreviousValue
+     *
+     * @return string|string[]|null
+     */
+	public function randomformat($formatName,$usePreviousValue=true) {
 		if (!$this->isFormat($formatName)) {
 			trigger_error("Format [$formatName] not defined");
 			return "";
@@ -1259,20 +1361,20 @@ class ChaosMachineOne
 			$idx = rand(0, $c - 1);
 			$format=$this->formats[$formatName][$idx];
 		}
-		return $this->parseFormat($format);
+		return $this->parseFormat($format,$usePreviousValue=true);
 	}
-	
-	public function parseFormat($string)
+	public function parseFormat($string,$usePreviousValue=true)
 	{
-		return preg_replace_callback('/\{\{\s?(\w+)\s?\}\}/u', array($this, 'callRandomArray'), $string);
+	    $this->usePreviousValue=$usePreviousValue;
+		return preg_replace_callback('/{{\s?(\w+)\s?}}/u', array($this, 'callRandomArray'), $string);
 	}
 	protected function callRandomArray($matches)
 	{
-		if($this->isArray($matches[1])) {
-			return $this->randomarray($matches[1]);
-		} else {
-			return $this->getDictionary($matches[1])->curValue;
-		}
+        if ($this->isArray($matches[1])) {
+            return $this->randomarray($matches[1]);
+        } else {
+            return $this->getDictionary($matches[1])->curValue;
+        }
 	}
 	public function randomtext($startLorem='Lorem ipsum dolor',$arrayName='',$paragraph=false,$nWordMin=20,$nWordMax=40) {
 		$array=$this->dictionary[$arrayName];
@@ -1327,7 +1429,6 @@ class ChaosMachineOne
 	 * @return float|int|string
 	 */
 	public function random($from,$to,$jump=1,$prob0=null,$prob1=null,$prob2=null) {
-		$r='';
 		$segment=$this->getRandomSegment($prob0,$prob1,$prob2);
 		if($segment===null) {
 			$r=rand($from/$jump,$to/$jump)*$jump;

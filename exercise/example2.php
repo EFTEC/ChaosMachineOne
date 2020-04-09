@@ -39,8 +39,9 @@ $chaos->table('table',100)
 	//and idtable.add=randomprop(0,3,80,10)') 
 	//->gen('when _index=201 then idtable.speed=0 and idtable.accel=0 and idtable.add=random(-100,100)') 
 	//->gen('when _index>200 then idtable.add=random(-100,100)')  
-	->show(['idtable'])
-	->stat();
+	->showTable(['idtable'],true)
+	->stat()
+    ->run();
 	
 	
 	
