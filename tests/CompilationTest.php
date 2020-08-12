@@ -43,12 +43,12 @@ class CompilationTest extends AbstractStateMachineOneTestCase {
         $idtest5=$this->chaosMachineOne->getDictionary('idtest5');
 	    $testarray=$this->chaosMachineOne->getDictionary('texttest1');
 	    $fixedformat=$this->chaosMachineOne->getDictionary('fixedformat');
-	    self::assertEquals(123,$idTest->curValue,'idtest must value 123'); // default value
-	    self::assertEquals(200,$idtest2->curValue,'idtest2 must value 200'); // it's the maximum value
-	    self::assertEquals(510,$idtest3->curValue,'idtest3 must value 510');
-	    self::assertEquals(99,$idtest4->curValue,'idtest4 must value 99');
-        self::assertEquals(20.3,$idtest5->curValue,'idtest5 must value 20.3');
-	    self::assertContains($testarray->curValue,['a','b','c'],'testarray must value a,b,c');
+	    self::assertEquals(123,$idTest->curValue); // default value
+	    self::assertEquals(200,$idtest2->curValue); // it's the maximum value
+	    self::assertEquals(510,$idtest3->curValue);
+	    self::assertEquals(99,$idtest4->curValue);
+        self::assertEquals(20.3,$idtest5->curValue);
+	    self::assertContains($testarray->curValue,['a','b','c']);
 	    self::assertEquals("array random value:a number:123",$fixedformat->curValue);
 
 	    $this->chaosMachineOne=new ChaosMachineOne();
@@ -58,7 +58,7 @@ class CompilationTest extends AbstractStateMachineOneTestCase {
 		    ->gen('when _index<500 then idtest.value=ramp(0,100,0,1000)')
 		    ->run();
 	    $idTest=$this->chaosMachineOne->getDictionary('idtest');
-	    self::assertEquals(990,$idTest->curValue,'idtest must value 990'); // default value
+	    self::assertEquals(990,$idTest->curValue); // default value
     }
 
 }

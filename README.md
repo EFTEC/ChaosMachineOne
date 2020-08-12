@@ -457,6 +457,8 @@ It generates a random text by using the array with name $arrayName.  The text co
 
 If $paragraph is not 0, then it could generates paragraph (line carriage)
 
+If arrayName is empty then it uses an array with "lorem ipsum" words.
+
 ```
 ->gen('when always then text.value=randomtext("Lorem ipsum dolor","loremIpsumArray",1,4,30)')
 ```
@@ -469,6 +471,8 @@ It generates a text based on a mask
 * 0 = a random digit.
 * u = An uppercase letter
 * l = A lowercase letter
+* v = An upper or lowercase letter.
+* w = An random letter (upper or lowercase) or a digit.
 * X = An optional letter (uppercase)
 * x = An optional letter (lowercase)
 * ? = A random word from an array or a format.
@@ -510,7 +514,8 @@ $chaos->table('SOMETABLE', 1000) // we will work with the table SOMETABLE
     ->field('idcustomer', 'int','identity', 0, 0, 1000) // we created a field (database), however it is identity so it will not be stored in the database
     ->field('name', 'string', 'database', '', 0, 45) // this field will be stored in the database
     //...
-    ->insert(true); // finally we insert the new values (1000 values) : insert into SOMETABLE (name) values(...);
+    ->setInsert()
+    ->run(); // finally we insert the new values (1000 values) : insert into SOMETABLE (name) values(...);
 ```
 
 ### table($table, $conditions,$prefix='origin_')
@@ -529,14 +534,25 @@ $chaos->table('SOMETABLE', 'select * from ORIGINTABLE') // insert "n" rows into 
 
 ```
 
+The value of the query is stored in the variables called : origin_**name of the column**
+
 ### insert($storeCache=false,$echoProgress=null,$continueOnError=false,$maxRetry=3)
 
 Insert random values into the database.
+
+Note: Deprecated Use instead setInsert()
 
 * $storecache = if true then it inserts a value and it stores its value into memory.
 * $echoProgress = (printf format) if it is not empty then it shows the progress (echo)
 * $continueOnError = if true then it continues if insert fails.
 * $maxRetry = number of retries (if insert fails)
+
+### sertInsert($continueOnError=false,$maxRetry=3)
+
+It sets to insert the values into the database. This operation is executed when the command run() is executed.
+
+* $continueOnError = if true then it continues if insert fails.  
+* $maxRetry = number of retries (if insert fails)  
 
 ### setArrayFromDBQuery($name,$query,$probability=[1],$queryParam=null)
 
@@ -573,6 +589,9 @@ It sets an array using a table
 > Note: arrays and variables share the same space of memory.
 
 ## version
+* 1.8 2020-04-09
+    * method insert() is deprecated. Use instead setInsert()
+    * new method setInsert()
 * 1.7 2020-04-09 Updated Dependency eftec/pdoone (1.19 => 1.28.1)
 * 1.6 Added function showTable() and show()
 * 1.5 Updated MiniLang 2.12 -> 2.14

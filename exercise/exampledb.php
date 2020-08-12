@@ -30,7 +30,12 @@ $sqlCreateSales="CREATE TABLE `sales` (
   PRIMARY KEY (`idsales`))";
 
 $db=new PdoOne("mysql","localhost","root","abc.123","chaosdb");
-$db->open();
+$db->logLevel=3;
+try {
+    $db->open();
+} catch (Exception $e) {
+    die("Unable to connect to database chaosdb");
+}
 $db->logLevel=3;
 $customers=false;
 $products=false;
@@ -56,7 +61,7 @@ try {
 if($customers) {
 	$chaos = new ChaosMachineOne();
 	$chaos->debugMode=true;
-	$chaos->table('customers', 1000)
+	$chaos->table('customers', 1)
 		->setDb($db)
 		->field('fixedid','int','local',5)
 		->field('idcustomer', 'int','identity', 0, 0, 1000)
@@ -77,7 +82,7 @@ if($customers) {
 		//->insert(true)
 		->stat()
 		->show();
-	die(1);
+	//die(1);
 }
 if($products) {
 	$chaos = new ChaosMachineOne();
