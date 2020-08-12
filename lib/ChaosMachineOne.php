@@ -25,7 +25,7 @@ use PDOStatement;
  *
  * @package  eftec\chaosmachineone
  * @author   Jorge Patricio Castro Castillo <jcastro arroba eftec dot cl>
- * @version  1.8 2020-08-12
+ * @version  1.9 2020-08-12
  * @link     https://github.com/EFTEC/ChaosMachineOne
  * @license  LGPL v3 (or commercial if it's licensed)
  */

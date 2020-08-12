@@ -589,6 +589,10 @@ It sets an array using a table
 > Note: arrays and variables share the same space of memory.
 
 ## version
+* 1.9 2020-08-12  
+    * Updated a problem with the database (forever loop)  
+    * Updated code  
+    * Updated dependencies.
 * 1.8 2020-04-09
     * method insert() is deprecated. Use instead setInsert()
     * new method setInsert()
