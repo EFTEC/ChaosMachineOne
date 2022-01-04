@@ -61,4 +61,23 @@ class CompilationTest extends AbstractStateMachineOneTestCase {
 	    self::assertEquals(990,$idTest->curValue); // default value
     }
 
+
+    public function testSpeed() {
+
+
+        $this->chaosMachineOne
+            ->table('table',10)
+            ->field('v1','int','local',1)
+            ->field('v2','int','local',1)
+            ->gen('when always then v2=v1')
+            ->gen('when always then v1.speed=2')
+
+            //->showTable(['v1','v2'])
+            ->run();
+        $idTest=$this->chaosMachineOne->getDictionary('v1');
+        $idtest2=$this->chaosMachineOne->getDictionary('v2');
+        self::assertEquals(21,$idTest->curValue); // default value
+        self::assertEquals(21,$idtest2->curValue); // it's the maximum value
+    }
+
 }

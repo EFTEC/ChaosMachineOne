@@ -9,7 +9,8 @@ include "../../vendor/autoload.php";
 include "../../lib/en_us/Person.php";
 
 
-$db=new PdoOne("mysql","localhost","root","abc.123","sakila");
+//$db=new PdoOne("mysql","localhost","root","abc.123","sakila");
+$db=new PdoOne("sqlsrv","PCJC\SQLDEV","sa","ats475","sakila2021");
 $db->open();
 $db->logLevel=3;
 

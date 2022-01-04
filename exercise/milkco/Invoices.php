@@ -1,20 +1,20 @@
 <?php
 use eftec\chaosmachineone\ChaosMachineOne;
 
- include 'common.php';
+include 'common.php';
 
-@set_time_limit(600); 
- 
+@set_time_limit(600);
+
 /*
   * SET @i=0;
 UPDATE Invoices SET idInvoice=(@i:=@i+1);
   */
+$db->logLevel=3;
+//$db->from('invoices')->where('1=1')->delete();
 
-$db->from('invoices')->where('1=1')->delete();
 
-
-$customerArray=$db->select('cu.idcustomer,round(population/1000) pop') // we divided by 1000 because we don't need big numbers
-    ->from('invoices inv')
+$customerArray=$db->select('cu.idcustomer,round(population/1000,0) pop') // we divided by 1000 because we don't need big numbers
+->from('invoices inv')
     ->innerjoin('customers cu on inv.idcustomer=cu.idcustomer')
     ->innerjoin('cities ci on cu.idcity=ci.idcity')
     ->toListKeyValue(); // popularity of the customers by population of the cities
@@ -37,21 +37,25 @@ foreach($customers as $kounter=>$cus) {
 
     $chaos = new ChaosMachineOne();
     if($isbusiness==="1") {
-        $empnu = $chaos->random(1,200,1,50,1); // from 1 to 200 invoices per company with a trend to 1    
+        $empnu = $chaos->random(1,200,1,50,1); // from 1 to 200 invoices per company with a trend to 1
     } else {
         $empnu = $chaos->random(1,40,1,50,1); // from 1 to 40 invoices per customer with a trend to 1
     }
-    
+
     $chaos->debugMode = false;
     $chaos->setDb($db);
-    
-    $sellers=$db->select('idemployee')->from('employees e')
-                ->innerjoin('cities ci on e.idcity=ci.idcity')
-                ->where('e.idrole=? and ci.idcountry=?',['i',4,'i',$idcountry])
-                ->toListSimple(); // sellers from the same country
 
-    $empyear = $chaos->random(-13,-1,1); // customers are 1 to 13 year old
-    $init=(new DateTime('now'))->modify($empyear.' year');
+    $sellers=$db->select('idemployee')->from('employees e')
+        ->innerjoin('cities ci on e.idcity=ci.idcity')
+        ->where('e.idrole=? and ci.idcountry=?',[4,$idcountry])
+        ->toListSimple(); // sellers from the same country
+
+    $randomyear=$chaos->random(2010,2020,1);
+    $randommonth=$chaos->random(1,12,1);
+    $randomday=$chaos->random(1,28,1);
+    $empyear = $chaos->random(-13,-1,1); // customers are purchasing our company since 1 to 13-year-old
+    //$init=(new DateTime('now'))->modify($empyear.' year');
+    $init=DateTime::createFromFormat('Y-m-d h:i:s', "$randomyear-$randommonth-$randomday 00:00:00");
 
     $chaos->table('Invoices', $empnu)->setDb($db)
         ->field('idInvoice', 'int', 'identity', 0)
@@ -71,8 +75,9 @@ foreach($customers as $kounter=>$cus) {
         ->gen('when creationDate.month<4 and creationDate.weekday>5 set creationDate.speed=random(86400,1228000)')
         ->gen('when creationDate.month>=4 and creationDate.weekday>5 set creationDate.speed=random(86400,1628000)')
         ->gen('when always set lastDate.speed=0')
+        ->gen('when creationDate.year=2020 and creationDate.month=12 and creationDate.day>29 then end()')
         ->setInsert(false)
         //->showTable(['idInvoice', 'creationDate', 'idCustomer', 'idSeller', 'lastDate'], true)
         ->run(true);
-    echo "<h1>$idcustomer $kounter of ".count($customers)." : $empnu</h1>";
+    echo "<h1>$idcustomer ".$init->format('Y-m-d h:i:s')."  $kounter of ".count($customers)." : $empnu</h1>";
 }

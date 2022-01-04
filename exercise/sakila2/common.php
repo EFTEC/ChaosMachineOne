@@ -11,8 +11,8 @@ include __DIR__.'/SakilaLib.php';
 include "../../lib/en_US/World.php";
 include "../../lib/en_US/Address.php";
 
-
-$db=new PdoOne("mysql","localhost","root","abc.123","sakila2");
+$db=new PdoOne("sqlsrv","PCJC\SQLDEV","sa","ats475","sakila2021");
+// $db=new PdoOne("mysql","localhost","root","abc.123","sakila2");
 $db->open();
 $db->logLevel=3;
 

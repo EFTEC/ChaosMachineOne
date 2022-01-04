@@ -1,18 +1,26 @@
 <?php
 use eftec\chaosmachineone\ChaosMachineOne;
 
- include 'common.php';
-$chaos->table('Roles', 1000)
-		->setDb($db)
-		->field('idRole', 'int','database')
-			->isnullable(true)
-		->field('name', 'string','database','',0,45)
-		->field('monthlySalary', 'decimal','database')
-		->field('lastUpdate', 'datetime','database',new DateTime('now'))
-		->gen('when always set idRole.value=random(1,100,1,10,10)')
-		->gen('when always set name.value=random(0,45)')
-		->gen('when always set monthlySalary.value=random(1,100,0.1,10,10)')
-		->gen('when always set lastUpdate.speed=random(3600,86400)')
-		->setInsert(true)
-		->showTable(['idRole','name','monthlySalary','lastUpdate'],true)
-		->run(true);
+include_once 'common.php';
+
+
+$roles=[
+    [ 'idRole'=>1,  'name'=>'Manager',  'monthlySalary'=>10000.00],
+    [ 'idRole'=>2,  'name'=>'Executive',  'monthlySalary'=>8000.00],
+    [ 'idRole'=>3,  'name'=>'Technician',  'monthlySalary'=>7000.00],
+    [ 'idRole'=>4,  'name'=>'Sales',  'monthlySalary'=>6000.00],
+    [ 'idRole'=>5,  'name'=>'Administrative',  'monthlySalary'=>5000.00],
+    [ 'idRole'=>6,  'name'=>'Operator',  'monthlySalary'=>4000.00],
+    [ 'idRole'=>7,  'name'=>'Staff',  'monthlySalary'=>3000.00],
+];
+
+
+if($db->from('Roles')->count()>0) {
+    echo "table Roles skipped<br>";
+} else {
+    echo "inserting Roles<br>";
+    foreach($roles as $role) {
+        $db->insert('Roles',$role);
+    }
+    echo "inserting Roles OK<br>";
+}

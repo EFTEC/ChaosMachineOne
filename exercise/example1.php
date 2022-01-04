@@ -1,4 +1,5 @@
-<?php
+<?php /** @noinspection ForgottenDebugOutputInspection */
+
 /**
  * @deprecated 
  */
@@ -66,7 +67,7 @@ class Tmp {
 	}
 	function rand($i1,$i2) {
 		echo "rand";
-		return rand($i1,$i2);
+		return mt_rand($i1,$i2);
 	}
 }
 

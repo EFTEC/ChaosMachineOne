@@ -3,6 +3,7 @@
 namespace eftec\chaosmachineone;
 
 use DateInterval;
+use eftec\PdoOne;
 
 /**
  * Class ChaosField
@@ -24,7 +25,7 @@ class ChaosField
 	public $curSpeed=0;
 	public $curAccel=0;
 	public $allowNull=false;
-	
+    public $alreadyEvaluated=false;
 	public $min;
 	public $max;
 	/** @var bool if true and the operation fails, then this value is re-calculated */
@@ -77,10 +78,14 @@ class ChaosField
         if($this->allowNull && $this->curValue===null) {
             return null;
         }
+        if($this->alreadyEvaluated) {
+            return null;
+        }
+        $this->alreadyEvaluated=true;
 		switch ($this->type) {
 			case 'int':
                 @$this->curValue += $this->curSpeed;
-                $this->curValue = round($this->curValue, 0);
+                $this->curValue = round($this->curValue);
 
                 $this->curSpeed += $this->curAccel;
 
@@ -97,11 +102,12 @@ class ChaosField
                 //var_dump($this->curValue);
 			    /** @noinspection PhpUnhandledExceptionInspection */
                 $di=new DateInterval('PT'.$this->curSpeed.'S');
-                
+                if(is_string($this->curValue)) {
+                    $this->curValue=PdoOne::dateConvert($this->curValue,'sql','class');
+                }
 				$this->curValue->add($di);
 				//var_dump($this->curSpeed);
 				$this->curSpeed += $this->curAccel;
-			
 				//if ($this->curValue<$this->statMin) $this->statMin=$this->curValue;
 				//if ($this->curValue>$this->statMax) $this->statMax=$this->curValue;
 				$this->statSum+=$this->curValue->getTimestamp();

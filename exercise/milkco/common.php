@@ -6,16 +6,19 @@ use eftec\PdoOne;
 @set_time_limit(200);
 
 include "../../vendor/autoload.php";
-include "../../lib/en_US/Person.php";
-include __DIR__.'/SakilaLib.php';
-include "../../lib/en_US/World.php";
-include "../../lib/en_US/Address.php";
-include "../../lib/en_US/Company.php";
+include_once "../../lib/en_US/Person.php";
+include_once __DIR__.'/SakilaLib.php';
+//include_once "../../lib/en_US/World.php";
+include_once '../../lib/en_US/cities_lite.php';
+include_once "../../lib/en_US/Address.php";
+include_once "../../lib/en_US/Company.php";
 
 
-$db=new PdoOne("mysql","localhost","root","abc.123","milkco");
-$db->open();
+//$db=new PdoOne("mysql","localhost","root","abc.123","milkco");
+$db=new PdoOne("sqlsrv","PCJC\SQLSERVER2017","sa","ats475","milkco");
 $db->logLevel=3;
+$db->open();
+
 
 
 $chaos=new ChaosMachineOne();

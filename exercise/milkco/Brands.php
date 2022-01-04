@@ -1,14 +1,18 @@
 <?php
 use eftec\chaosmachineone\ChaosMachineOne;
 
- include 'common.php';
-$chaos->table('Brands', 1000)
-		->setDb($db)
-		->field('idBrand', 'int','identity', 0)
-		->field('name', 'string','database','',0,45)
-		->field('lastUpdate', 'datetime','database',new DateTime('now'))
-		->gen('when always set name.value=random(0,45)')
-		->gen('when always set lastUpdate.speed=random(3600,86400)')
-		->setInsert(true)
-		->showTable(['idBrand','name','lastUpdate'],true)
-		->run(true);
+include_once 'common.php';
+
+$brands=['Value Pack','Aunty Annie','Red Label'];
+
+if($db->from('Brands')->count()>0) {
+    echo "table Brands skipped<br>";
+} else {
+    echo "inserting Brands<br>";
+    foreach($brands as $brand) {
+        $db->insert('Brands',['name'=>$brand]);
+    }
+    echo "inserting Brands OK<br>";
+}
+
+

@@ -1,31 +1,28 @@
-<?php
-/** @noinspection UnknownInspectionInspection */
-
-/** @noinspection TypeUnsafeComparisonInspection */
-
-/** @noinspection AlterInForeachInspection */
-
-/** @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection */
-
-/** @noinspection PhpUnused */
-
-/** @noinspection DuplicatedCode */
+<?php /** @noinspection JSUnresolvedLibraryURL
+ * @noinspection UnknownInspectionInspection
+ * @noinspection TypeUnsafeComparisonInspection
+ * @noinspection AlterInForeachInspection
+ * @noinspection PhpParameterByRefIsNotUsedAsReferenceInspection
+ * @noinspection PhpUnused
+ * @noinspection DuplicatedCode */
 
 namespace eftec\chaosmachineone;
 
+use DateInterval;
 use DateTime;
 use eftec\minilang\MiniLang;
 use eftec\PdoOne;
 use Exception;
 use PDO;
 use PDOStatement;
+use RuntimeException;
 
 /**
  * Class ChaosMachineOne
  *
  * @package  eftec\chaosmachineone
  * @author   Jorge Patricio Castro Castillo <jcastro arroba eftec dot cl>
- * @version  1.9 2020-08-12
+ * @version  1.10 2021-06-28
  * @link     https://github.com/EFTEC/ChaosMachineOne
  * @license  LGPL v3 (or commercial if it's licensed)
  */
@@ -93,6 +90,9 @@ class ChaosMachineOne
             ''
         ];
     public $debugMode = false;
+    /** @var bool If true then it exits the run */
+    public $end = false;
+    public $continue = false;
     /**
      * It sets common probabilities. [nameoftheprobability=[values]]
      *
@@ -102,14 +102,19 @@ class ChaosMachineOne
      */
     public $probTypes
         = [
-            'fakebell'  => [10, 25, 30, 25, 10],
+            'fakebell' => [10, 25, 30, 25, 10],
             'fakebell2' => [15, 22, 26, 22, 15],
             'fakebell3' => [5, 15, 60, 15, 5],
             'rightbias' => [5, 10, 20, 35, 30],
-            'leftbias'  => [30, 35, 20, 10, 5]
+            'leftbias' => [30, 35, 20, 10, 5],
+            'flat' => [20, 20, 20, 20, 20],
+            'up' => [10, 20, 30, 40, 50],
+            'down' => [50, 40, 30, 20, 10],
+            'sine' => [10, 30, 10, 30, 10],
         ];
 
     private $dictionary = [];
+    private $seed;
     private $dictionaryProportional = [];
     /**
      * @var array This array keeps the values obtained from an array per line of operation.<br>
@@ -121,7 +126,6 @@ class ChaosMachineOne
     private $pipeFieldName;
     private $pipeFieldType;
     private $pipeFieldTypeSize;
-    private $pipeFieldSpecial;
     private $pipeValue;
     private $showTable = false;
     private $insert = false;
@@ -142,24 +146,43 @@ class ChaosMachineOne
     // special
     private $daysWeek = ['', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     private $bodyLoad = false;
-    /** @var array that stores the results method insert() */
+    /** @var array that stores the result method insert() */
     private $cacheResult;
 
     /**
      * ChaosMachineOne constructor.
+     * @param int $seed the seed number.  If 0, then the value is generated randomly using microtime.
      */
-    public function __construct()
+    public function __construct($seed=0)
     {
+        $this->seed=$seed;
         $this->reset();
-        $this->miniLang = new MiniLang($this, $this->dictionary, ['always'], [], $this);
+        $this->miniLang = new MiniLang($this, $this->dictionary, ['always', 'end'], [], $this);
+    }
+
+    /**
+     * It re-seed the number generator<br>
+     * <b>Note:</b>This method does nothing if mt_srand() is not defined.
+     *
+     * @param int|float $seed 0 means this value is generated randomly using microtime
+     * @return void
+     */
+    public function seed($seed=0) {
+        if(function_exists('mt_srand')) {
+            if($seed===0) {
+                list($usec, $sec) = explode(' ', microtime());
+                $seed=$sec + $usec * 1000000;
+            }
+            mt_srand($seed);
+        }
     }
 
     public function reset()
     {
+        $this->seed($this->seed);
         $this->pipeFieldName = null;
         $this->pipeFieldType = null;
         $this->pipeFieldTypeSize = null;
-        $this->pipeFieldSpecial = null;
         $this->pipeValue = null;
         $this->showTable = false;
         $this->insert = false;
@@ -168,6 +191,24 @@ class ChaosMachineOne
     public function always()
     {
         return true;
+    }
+
+    public function end()
+    {
+        $this->end = true;
+    }
+
+    public function omit()
+    {
+        $this->continue = true;
+    }
+
+    /**
+     * @return PdoOne
+     */
+    public function getDb()
+    {
+        return $this->db;
     }
 
     /**
@@ -199,21 +240,27 @@ class ChaosMachineOne
      *
      * @param string             $name        name of the array
      * @param string             $table       name of the table of the database
-     * @param array|string       $column      name of the column. It could be a formula but it must be the first column.<br>
-     *                                        If it is an array then the key is the name and the value is the probability<br>
-     * @param array|string|int[] $probability =[[],'increase','decrease'][$i] It is another alternative to set an the
+     * @param array|string       $column      name of the column. It could be a formula, but it must be the first
+     *                                        column.<br> If it is an array then the key is the name and the value is
+     *                                        the probability<br>
+     * @param array|string|int[] $probability =[[],'increase','decrease'][$i] It is another alternative to set and the
      *                                        probabilities but inly if $value is not an associative array.<br>
      *                                        <b>'increase'</b> sets the probability increasing in the time (ramp)<br>
      *                                        <b>'decrease'</b> sets the probability decreasing in the time (ramp)<br>
-     *                                        <b>'fakebell'</b> sets the probability to [10,25,30,25,10] (a normal bell)<br>
-     *                                        <b>'fakebell2'</b> sets the probability to [15,22,26,22,15] (a wide bell)<br>
-     *                                        <b>'fakebell3'</b> sets the probability to [5,15,60,15,5] (a narrow bell)<br>
-     *                                        <b>'righbias'</b> sets the probability to [5,10,20,35,30] (bell right bias)<br>
-     *                                        <b>'leftbias'</b> sets the probability to [30,35,20,10,5] (bell left bias)<br>
-     *                                        <p><b>[60,30,10..]</b> It sets 60% of chance for the first 1/3 elements, 20% for the
-     *                                        second 1/3 and 10 for the last 1/3.</p>
-     *                                        <p><b>Note:</b> The number of probabilities doesn't need to match the number of
-     *                                        elements of the array</p>
+     *                                        <b>'fakebell'</b> sets the probability to [10,25,30,25,10] (a normal
+     *                                        bell)<br>
+     *                                        <b>'fakebell2'</b> sets the probability to [15,22,26,22,15] (a wide
+     *                                        bell)<br>
+     *                                        <b>'fakebell3'</b> sets the probability to [5,15,60,15,5] (a narrow
+     *                                        bell)<br>
+     *                                        <b>'righbias'</b> sets the probability to [5,10,20,35,30] (bell right
+     *                                        bias)<br>
+     *                                        <b>'leftbias'</b> sets the probability to [30,35,20,10,5] (bell left
+     *                                        bias)<br>
+     *                                        <p><b>[60,30,10..]</b> It sets 60% of chance for the first 1/3 elements,
+     *                                        20% for the second 1/3 and 10 for the last 1/3.</p>
+     *                                        <p><b>Note:</b> The number of probabilities doesn't need to match the
+     *                                        number of elements of the array</p>
      *
      *
      * @param null|string        $where
@@ -255,21 +302,26 @@ class ChaosMachineOne
      *
      * @param string             $name        name of the array. If the array exists then it returns an error.
      * @param array              $value       It could be a simple array with value or an associative array<br>
-     *                                        If it is an associative array then the key is the value to use and the value is
-     *                                        the probability.
-     * @param array|string|int[] $probability =[[],'increase','decrease'][$i] It is another alternative to set an the
+     *                                        If it is an associative array then the key is the value to use and the
+     *                                        value is the probability.
+     * @param array|string|int[] $probability =[[],'increase','decrease'][$i] It is another alternative to set and the
      *                                        probabilities but inly if $value is not an associative array.<br>
      *                                        <b>'increase'</b> sets the probability increasing in the time (ramp)<br>
      *                                        <b>'decrease'</b> sets the probability decreasing in the time (ramp)<br>
-     *                                        <b>'fakebell'</b> sets the probability to [10,25,30,25,10] (a normal bell)<br>
-     *                                        <b>'fakebell2'</b> sets the probability to [15,22,26,22,15] (a wide bell)<br>
-     *                                        <b>'fakebell3'</b> sets the probability to [5,15,60,15,5] (a narrow bell)<br>
-     *                                        <b>'righbias'</b> sets the probability to [5,10,20,35,30] (bell right bias)<br>
-     *                                        <b>'leftbias'</b> sets the probability to [30,35,20,10,5] (bell left bias)<br>
-     *                                        <p><b>[60,30,10..]</b> It sets 60% of chance for the first 1/3 elements, 20% for the
-     *                                        second 1/3 and 10 for the last 1/3.</p>
-     *                                        <p><b>Note:</b> The number of probabilities doesn't need to match the number of
-     *                                        elements of the array</p>
+     *                                        <b>'fakebell'</b> sets the probability to [10,25,30,25,10] (a normal
+     *                                        bell)<br>
+     *                                        <b>'fakebell2'</b> sets the probability to [15,22,26,22,15] (a wide
+     *                                        bell)<br>
+     *                                        <b>'fakebell3'</b> sets the probability to [5,15,60,15,5] (a narrow
+     *                                        bell)<br>
+     *                                        <b>'righbias'</b> sets the probability to [5,10,20,35,30] (bell right
+     *                                        bias)<br>
+     *                                        <b>'leftbias'</b> sets the probability to [30,35,20,10,5] (bell left
+     *                                        bias)<br>
+     *                                        <p><b>[60,30,10..]</b> It sets 60% of chance for the first 1/3 elements,
+     *                                        20% for the second 1/3 and 10 for the last 1/3.</p>
+     *                                        <p><b>Note:</b> The number of probabilities doesn't need to match the
+     *                                        number of elements of the array</p>
      *
      * @return $this
      */
@@ -279,7 +331,7 @@ class ChaosMachineOne
 
         $first_key = key($value);
         if ($first_key == 0) {
-            // It is not an associative array so we converted into an associative array
+            // It is not an associative array, so we converted into an associative array
             if (isset($this->dictionary[$name])) {
                 trigger_error("arrays[$name] is already defined");
             }
@@ -305,7 +357,6 @@ class ChaosMachineOne
                         trigger_error("probability [$probability] not defined");
                 }
             } else {
-                /** @noinspection NotOptimalIfConditionsInspection */
                 if (is_string($probability) && isset($this->probTypes[$probability])) {
                     /** @noinspection CallableParameterUseCaseInTypeContextInspection */
                     $probability = $this->probTypes[$probability];
@@ -356,19 +407,24 @@ class ChaosMachineOne
      * @param string             $table       name of the table of the database
      * @param string|array       $column      name of the column. It could be a formula.
      * @param string             $column2     name of the second column.
-     * @param array|string|int[] $probability =[[],'increase','decrease'][$i] It is another alternative to set an the
+     * @param array|string|int[] $probability =[[],'increase','decrease'][$i] It is another alternative to set and the
      *                                        probabilities but inly if $value is not an associative array.<br>
      *                                        <b>'increase'</b> sets the probability increasing in the time (ramp)<br>
      *                                        <b>'decrease'</b> sets the probability decreasing in the time (ramp)<br>
-     *                                        <b>'fakebell'</b> sets the probability to [10,25,30,25,10] (a normal bell)<br>
-     *                                        <b>'fakebell2'</b> sets the probability to [15,22,26,22,15] (a wide bell)<br>
-     *                                        <b>'fakebell3'</b> sets the probability to [5,15,60,15,5] (a narrow bell)<br>
-     *                                        <b>'righbias'</b> sets the probability to [5,10,20,35,30] (bell right bias)<br>
-     *                                        <b>'leftbias'</b> sets the probability to [30,35,20,10,5] (bell left bias)<br>
-     *                                        <p><b>[60,30,10..]</b> It sets 60% of chance for the first 1/3 elements, 20% for the
-     *                                        second 1/3 and 10 for the last 1/3.</p>
-     *                                        <p><b>Note:</b> The number of probabilities doesn't need to match the number of
-     *                                        elements of the array</p>
+     *                                        <b>'fakebell'</b> sets the probability to [10,25,30,25,10] (a normal
+     *                                        bell)<br>
+     *                                        <b>'fakebell2'</b> sets the probability to [15,22,26,22,15] (a wide
+     *                                        bell)<br>
+     *                                        <b>'fakebell3'</b> sets the probability to [5,15,60,15,5] (a narrow
+     *                                        bell)<br>
+     *                                        <b>'righbias'</b> sets the probability to [5,10,20,35,30] (bell right
+     *                                        bias)<br>
+     *                                        <b>'leftbias'</b> sets the probability to [30,35,20,10,5] (bell left
+     *                                        bias)<br>
+     *                                        <p><b>[60,30,10..]</b> It sets 60% of chance for the first 1/3 elements,
+     *                                        20% for the second 1/3 and 10 for the last 1/3.</p>
+     *                                        <p><b>Note:</b> The number of probabilities doesn't need to match the
+     *                                        number of elements of the array</p>
      * @param null|string        $where       (optional) a sql condition.
      *
      * @return ChaosMachineOne
@@ -492,7 +548,11 @@ class ChaosMachineOne
             return '';
         }
         try {
+            /** @var array|false $array */
             $array = $this->db->runRawQuery($sql, null, true);
+            if($array===false) {
+                throw new RuntimeException("Unable to run query $sql");
+            }
         } catch (Exception $e) {
             if ($this->debugMode) {
                 $this->debug($e->getMessage());
@@ -521,6 +581,7 @@ class ChaosMachineOne
      */
     public function run($storeCache = false)
     {
+        $this->end = false;
         if ($storeCache) {
             $this->cacheResult = [];
         } // deleted the cache
@@ -532,8 +593,8 @@ class ChaosMachineOne
                 $this->debug('WARNING: No database is set');
                 return $this;
             }
-            /** @var PDOStatement $statement */
             try {
+                /** @var PDOStatement $statement */
                 $statement = $this->db->runRawQuery($this->queryTable, null, false);
             } catch (Exception $e) {
                 if ($this->debugMode) {
@@ -549,6 +610,7 @@ class ChaosMachineOne
 
         $retryNum = 0;
         for ($i = 0; $i < $maxId; $i++) {
+            $this->continue = false;
             $retry = false;
             do {
                 if ($retry && $this->debugMode) {
@@ -560,6 +622,9 @@ class ChaosMachineOne
                 $this->keepRandomArray = [];
                 if (is_string($this->queryTable)) {
                     try {
+                        if ($statement === null) {
+                            throw new RuntimeException('no statement or statement with error');
+                        }
                         $row = $statement->fetch(PDO::FETCH_ASSOC);
                     } catch (Exception $e) {
                         $row = false;
@@ -580,10 +645,17 @@ class ChaosMachineOne
                 }
 
                 $this->dictionary['_index'] = $i;
+
                 $this->miniLang->evalAllLogic(false);
 
 
                 $this->cleanAndCut();
+                if ($this->end) {
+                    break; // break for.
+                }
+                if ($this->continue) {
+                    continue; // skip this iteraction
+                }
                 if ($storeCache) {
                     $tmp = [];
                     // clone values (avoid instancing the same objects).
@@ -619,6 +691,12 @@ class ChaosMachineOne
                     $retry = false;
                 }
             } while ($retry);
+            // we mark all fields as not evaluted
+            foreach ($this->dictionary as &$obj) {
+                if ($this->isChaosField($obj)) {
+                    $obj->alreadyEvaluated = false;
+                }
+            }
         } // for
         if ($this->showTable) {
             $this->tableFooter();
@@ -663,8 +741,11 @@ class ChaosMachineOne
     /**
      * @param string $name      Name of the field. Example "IdProduct" or "NameCustomer"
      * @param string $type      =['int','decimal','datetime','string'][$i]
-     * @param string $special   =['database','identity','local'][$i] Indicates if the field will be store into the database
-     * @param int    $initValue Initial value. Example: 0, 20.5, "some text"
+     * @param string $special   =['database','identity','local'][$i] Indicates if the field will be store into the
+     *                          database
+     * @param mixed  $initValue Initial value. Example: 0, 20.5, "some text",new DateTime()<br>
+     *                          If type is datetime then you could use 'now' or a string with the date and time
+     *                          '2010-11-20 11:22:22'
      * @param int    $min       Maxium value. If the value is of the type string then it is the minimum length.
      * @param int    $max       Maximum value. If the value is the type string then it is the maximum length.
      *
@@ -685,7 +766,14 @@ class ChaosMachineOne
             trigger_error('field: special argument incorrect');
             return $this;
         }
-        $this->pipeFieldSpecial = $special;
+        if ($type === 'datetime') {
+            if ($initValue === 'now') {
+                $initValue = new DateTime('now');
+            } else if (is_string($initValue)) {
+                $initValue = DateTime::createFromFormat('Y-m-d H:i:s', $initValue);
+            }
+        }
+
         $this->dictionary[$name] = new ChaosField($name, $this->pipeFieldType, $this->pipeFieldTypeSize, $special,
             $initValue);
         $this->dictionary[$name]->min = $min;
@@ -705,7 +793,7 @@ class ChaosMachineOne
                         if ($obj->allowNull && $obj->curValue === null) {
                             $obj->curValue = null;
                         } else {
-                            $obj->curValue = round($obj->curValue, 0);
+                            $obj->curValue = round($obj->curValue);
                             if ($obj->curValue < $obj->min) {
                                 $obj->curValue = $obj->min;
                             }
@@ -746,7 +834,7 @@ class ChaosMachineOne
 
     private function isChaosField($obj)
     {
-        return is_object($obj) && $obj instanceof ChaosField;
+        return $obj instanceof ChaosField;
     }
 
     private function trimText($txt, $l)
@@ -816,7 +904,7 @@ class ChaosMachineOne
                 if ($obj->special === 'database') {
                     if ($obj->type === 'datetime') {
                         if ($obj->curValue instanceof DateTime) {
-                            $arr[$obj->name] = PdoOne::dateTimePHP2Sql($obj->curValue);
+                            $arr[$obj->name] = PdoOne::dateConvert($obj->curValue, 'class', 'sql');
                         } else {
                             $arr[$obj->name]
                                 = PdoOne::unixtime2Sql($obj->curValue); // date('Ymd h:i:s', $obj->curValue);//date('Y-m-d H:i:s', $obj->curValue);
@@ -828,10 +916,8 @@ class ChaosMachineOne
             }
         }
         try {
-            $id = $this->db->insert($this->tableDB, $arr);
-
-            $this->debug("Debug: Inserting #$id");
-            return true; // exit rtry
+            $this->db->insert($this->tableDB, $arr);
+            return true; // exit try
         } catch (Exception $ex) {
             $this->dictionary = $dicTmp; //rollback data
             if ($this->insertContinueOnError) {
@@ -889,7 +975,7 @@ class ChaosMachineOne
     }
 
     /**
-     * It sets to insert the values into the database.  The values are inserted when they are run so it doesn't
+     * It sets to insert the values into the database.  The values are inserted when they are run, so it doesn't
      * need cache
      *
      * @param bool $continueOnError if true then the insert continues if it happens an error.
@@ -912,7 +998,8 @@ class ChaosMachineOne
      * @param bool        $storeCache      If true, then the result will be store in the cache.
      * @param null|string $echoProgress    It uses sprintf for show the progress. Example '%s<br>'
      * @param bool        $continueOnError if true then the insert continues if it happens an error.
-     * @param int         $maxRetry        Maximum number of retries. If an insert fails, then it tries to insert it again.
+     * @param int         $maxRetry        Maximum number of retries. If an insert fails, then it tries to insert it
+     *                                     again.
      *
      * @return $this
      * @deprecated
@@ -930,10 +1017,6 @@ class ChaosMachineOne
             return $this;
         }
         if (is_string($this->queryTable)) {
-            if ($this->db === null) {
-                $this->debug('WARNING: No database is set');
-                return $this;
-            }
             try {
                 /** @var PDOStatement $statement */
                 $statement = $this->db->runRawQuery($this->queryTable, null, false);
@@ -1096,7 +1179,8 @@ class ChaosMachineOne
     }
 
     /**
-     * If true then the field allows nulls. If false (the default value), then every null value is converted to another value (0 or '')
+     * If true then the field allows nulls. If false (the default value), then every null value is converted to another
+     * value (0 or '')
      *
      * @param bool $bool
      *
@@ -1150,18 +1234,32 @@ class ChaosMachineOne
         if ($field->type === 'datetime' && !is_numeric($v2)) {
             $last = substr($v2, -1);
             $number = substr($v2, 0, -1);
-            switch ($last) {
-                case 'h':
-                    $field->curValue += $number * 3600; // hours
-                    break;
-                case 'm':
-                    $field->curValue += $number * 60; // hours
-                    break;
-                case 'd':
-                    $field->curValue += $number * 86400; // days
-                    break;
-                default:
-                    trigger_error("add type not defined [$last] for datetime ");
+
+            if ($field->curValue instanceof DateTime) {
+                try {
+                    if ($last == 'd') {
+                        $field->curValue = date_add($field->curValue, new DateInterval('P' . strtoupper($v2)));
+                    } else {
+                        $field->curValue = date_add($field->curValue, new DateInterval('PT' . strtoupper($v2)));
+                    }
+                } catch (Exception $e) {
+                    $this->debug($e->getMessage());
+                }
+            } else {
+                switch ($last) {
+                    case 'h':
+
+                        $field->curValue += $number * 3600; // hours
+                        break;
+                    case 'm':
+                        $field->curValue += $number * 60; // minutes
+                        break;
+                    case 'd':
+                        $field->curValue += $number * 86400; // days
+                        break;
+                    default:
+                        trigger_error("add type not defined [$last] for datetime ");
+                }
             }
             return;
         }
@@ -1180,8 +1278,12 @@ class ChaosMachineOne
      *
      * @return int|null
      */
-    public function value(ChaosField $field, $v2 = null)
+    public function value($field, $v2 = null)
     {
+        if (!$field instanceof ChaosField) {
+            throw new RuntimeException("field is not a ChaosField at line: "
+                . '(' . $this->miniLang->debugLine . ')');
+        }
         if (func_num_args() == 1) {
             return $field->curValue;
         }
@@ -1190,11 +1292,37 @@ class ChaosMachineOne
         return null;
     }
 
+    public function update($table, $indexcolumn, $indexvalue, $updatecolumn1, $updatevalue1
+        ,                  $updatecolumn2 = null, $updatevalue2 = null, $updatecolumn3 = null, $updatevalue3 = null)
+    {
+        if ($this->db === null) {
+            $this->debug('WARNING: No database is set');
+            return null;
+        }
+        try {
+            $query = $this->db->from($table);
+            $setarr[$updatecolumn1] = $updatevalue1;
+            $wherearr[$indexcolumn] = $indexvalue;
+            if ($updatecolumn2 !== null) {
+                $setarr[$updatecolumn2] = $updatevalue2;
+            }
+            if ($updatecolumn3 !== null) {
+                $setarr[$updatecolumn3] = $updatevalue3;
+            }
+            $query->set($setarr);
+            $query->where($wherearr);
+            $query->update();
+        } catch (Exception $ex) {
+            $this->debug('unable to update :' . $ex->getMessage());
+        }
+        return null;
+    }
+
     /**
      * @param ChaosField $destination
      * @param mixed      $source
      */
-    public function copyfilefrom(ChaosField $destination, $source = null)
+    public function copyfilefrom($destination, $source = null)
     {
         if ($this->isChaosField($source)) {
             copy($source->curValue, $destination->curValue);
@@ -1255,7 +1383,7 @@ class ChaosMachineOne
                 $curhour = $this->hour($field);
                 $curhour = ($curhour == 0) ? 24 : $curhour;
                 $field->curValue += (24 - $curhour) * 3600 - $this->minute($field) * 60
-                    - $this->second($field); // we added the missing hours and we are close to midnight.
+                    - $this->second($field); // we added the missing hours, and we are close to midnight.
                 if ($this->month($field) == $curMonth) {
                     for ($i = 0; $i < 31; $i++) {
                         $field->curValue += 86400; // we add a day.
@@ -1276,7 +1404,7 @@ class ChaosMachineOne
                 $curhour = $this->hour($field);
                 $curhour = ($curhour == 0) ? 24 : $curhour;
                 $field->curValue += (24 - $curhour) * 3600 - $this->minute($field) * 60
-                    - $this->second($field); // we added the missing hours and we are close to midnight.
+                    - $this->second($field); // we added the missing hours, and we are close to midnight.
                 //echo "skip ".date('Y-m-d H:i:s l(N)',$field->curValue)."<br>";
                 $curweek = $this->weekday($field);
                 //echo "skipping to $p $curhour curweek $curweek ".((24-$curhour)*3500)."<br>";
@@ -1320,15 +1448,28 @@ class ChaosMachineOne
     }
 
     /**
-     * It starts the flow with a table.
+     * It starts the loop of execution where the values will be stored in a database table
      *
-     * @param string           $table  name of the table
+     * @param string           $table  name of the table to where the value will be inserted
      * @param int|string|array $origin
-     *                                 <p>if it is int then it sets the number of rows to generate.</p>
-     *                                 <p>if it is string then it sets a table to read</p>
-     *                                 <p>if it is an array then it sets the array to loop</p>
-     *                                 <p>Example: table('customers','select * from people','prefix')<p>
-     * @param string           $prefix prefix of the rows to read. If the origin is an array then it is used as the name of the variable
+     *                                 if it is int then it sets the number of rows to generate.<br>
+     *                                 if it is string then it sets a table to read<br>
+     *                                 if it is an array then it sets the array to loop<br>
+     *                                 <b>Example:</b><br>
+     *                                 <pre>
+     *                                 $this->table('customers','select * from people','prefix_');
+     *                                 $this->table('customers','people','prefix_');
+     *                                 $this->table('customers',200);
+     *                                 $this->table('customers',[1,2,3]);
+     *                                 </pre>
+     * @param string           $prefix prefix of the rows to read.<br>
+     *                                 If the origin is an array or a query then it is used as the name of the
+     *                                 variable<br>
+     *                                 <b>Example:</b>
+     *                                 <pre>
+     *                                 $this->table('customers','select id1,id2 from people','p_');
+     *                                 // it will generate the fields called p_id1 and pd_id2
+     *                                 </pre>
      *
      * @return $this
      */
@@ -1345,7 +1486,7 @@ class ChaosMachineOne
             $this->queryPrefix = $prefix;
         } else {
             $this->maxId = -1;
-            if (stripos($origin, 'select') === false) {
+            if (stripos($origin, 'select ') === false) {
                 $origin = "select * from $origin";
             } // is the table name
             $this->queryTable = $origin;
@@ -1359,97 +1500,111 @@ class ChaosMachineOne
     #region Range functions
 
     /**
-     * @param string $tableName
+     * It will generate a PHP code based in the definition of a table<br>
+     * <b>Example:</b><br>
+     * <pre>
+     * echo $chaos->generateCode('table1'); // generates the code of the table called table1
+     * echo $chaos->generateCode('*'); // generates the code of all the tables.
+     * </pre>
+     * @param string $tableName the name of the table
      *
-     * @return string
+     * @return string It will return a boilerplate code that you can use to fill the table.
      * @throws Exception
      */
     public function generateCode($tableName)
     {
-        $columns = $this->db->columnTable($tableName);
-        $fks = $this->db->foreignKeyTable($tableName);
-        $code = "\$chaos->table('$tableName', 1000)\n";
-        $code .= "\t\t->setDb(\$db)\n";
-        // set fields
-        $colShow = '';
-        foreach ($columns as $k => $column) {
-            $columns[$k]['coltype'] = $this->translateColType($column['coltype']);
-            $coltype = $columns[$k]['coltype'];
-
-            if ($coltype !== 'nothing') {
-                $colShow .= '\'' . $column['colname'] . '\',';
-                if ($column['isidentity']) {
-                    $code .= "\t\t->field('" . $column['colname'] . "', '" . $coltype . "','identity', 0)\n";
-                } else {
-                    $nullable = ($column['isnullable']) ? "\n\t\t\t->isnullable(true)" : '';
-                    switch ($coltype) {
-                        case 'datetime':
-                            $code .= "\t\t->field('" . $column['colname'] . "', '" . $coltype
-                                . "','database',new DateTime('now'))$nullable\n";
-                            break;
+        if($tableName==='*') {
+            $tables=$this->db->objectList('table',true);
+        } else {
+            $tables=[$tableName];
+        }
+        $codePHP='';
+        foreach($tables as $tblName) {
+            $columns = $this->db->columnTable($tblName);
+            $fks = $this->db->foreignKeyTable($tblName);
+            $codePHP .= "\$chaos->table('$tblName', 1000)\n";
+            $codePHP .= "\t\t->setDb(\$db)\n";
+            // set fields
+            $colShow = '';
+            foreach ($columns as $k => $column) {
+                $columns[$k]['coltype'] = $this->translateColType($column['coltype']);
+                $coltype = $columns[$k]['coltype'];
+                if ($coltype !== 'nothing') {
+                    $colShow .= '\'' . $column['colname'] . '\',';
+                    if ($column['isidentity']) {
+                        $codePHP .= "\t\t->field('" . $column['colname'] . "', '" . $coltype . "','identity', 0)\n";
+                    } else {
+                        $nullable = ($column['isnullable']) ? "\n\t\t\t->isnullable(true)" : '';
+                        switch ($coltype) {
+                            case 'datetime':
+                                $codePHP .= "\t\t->field('" . $column['colname'] . "', '" . $coltype
+                                    . "','database',new DateTime('now'))$nullable // DateTime::createFromFormat('Y-m-d', '2010-01-01')\n";
+                                break;
+                            case 'int':
+                            case 'mediumint':
+                            case 'decimal':
+                                $codePHP .= "\t\t->field('" . $column['colname'] . "', '" . $coltype
+                                    . "','database')$nullable\n";
+                                break;
+                            case 'string':
+                                $codePHP .= "\t\t->field('" . $column['colname'] . "', '" . $coltype
+                                    . "','database','',0,{$column['colsize']})$nullable\n";
+                                break;
+                            default:
+                                $codePHP .= "\t\t // " . $column['colname'] . " type $coltype not defined\n";
+                                break;
+                        }
+                    }
+                }
+            }
+            // set arrays
+            foreach ($fks as $fk) {
+                $codePHP .= "\t\t->setArrayFromDBTable('array_" . $fk['collocal'] . "','" . $fk['tablerem'] . "','"
+                    . $fk['colrem'] . "')\n";
+            }
+            // generation
+            foreach ($fks as $fk) {
+                $codePHP .= "\t\t->gen('when always set " . $fk['collocal'] . ".value=randomarray(\"array_" . $fk['collocal']
+                    . "\")')\n";
+            }
+            foreach ($columns as $column) {
+                $name = $column['colname'];
+                $size = $column['colsize'];
+                $found = false;
+                foreach ($fks as $fk) {
+                    if ($fk['collocal'] == $name) {
+                        $found = true; // it is a foreign key.
+                        break;
+                    }
+                }
+                if (!$found && !$column['isidentity']) {
+                    switch ($column['coltype']) {
                         case 'int':
+                            $codePHP .= "\t\t->gen('when always set $name.value=random(1,100,1,10,10)')\n";
+                            break;
                         case 'decimal':
-                            $code .= "\t\t->field('" . $column['colname'] . "', '" . $coltype
-                                . "','database')$nullable\n";
+                            $codePHP .= "\t\t->gen('when always set $name.value=random(1,100,0.1,10,10)')\n";
+                            break;
+                        case 'datetime':
+                            $codePHP .= "\t\t->gen('when always set $name.speed=random(3600,86400)')\n";
                             break;
                         case 'string':
-                            $code .= "\t\t->field('" . $column['colname'] . "', '" . $coltype
-                                . "','database','',0,{$column['colsize']})$nullable\n";
+                            $codePHP .= "\t\t->gen('when always set $name.value=random(0,$size)')\n";
+                            break;
+                        case 'nothing':
                             break;
                         default:
-                            $code .= "\t\t // " . $column['colname'] . " type $coltype not defined\n";
+                            $codePHP .= "\t\t// $name not defined for type {$column['coltype']}\n";
                             break;
                     }
                 }
             }
+            $colShow = rtrim($colShow, ','); // we remove the last ","
+            $codePHP .= "\t\t->setInsert(true)\n";
+            $codePHP .= "\t\t->showTable([$colShow],true)\n";
+            $codePHP .= "\t\t->run(true);\n";
         }
-        // set arrays
-        foreach ($fks as $fk) {
-            $code .= "\t\t->setArrayFromDBTable('array_" . $fk['collocal'] . "','" . $fk['tablerem'] . "','"
-                . $fk['colrem'] . "')\n";
-        }
-        // generation
-        foreach ($fks as $fk) {
-            $code .= "\t\t->gen('when always set " . $fk['collocal'] . ".value=randomarray(\"array_" . $fk['collocal']
-                . "\")')\n";
-        }
-        foreach ($columns as $k => $column) {
-            $name = $column['colname'];
-            $size = $column['colsize'];
-            $found = false;
-            foreach ($fks as $fk) {
-                if ($fk['collocal'] == $name) {
-                    $found = true; // it is a foreign key.
-                    break;
-                }
-            }
-            if (!$found && !$column['isidentity']) {
-                switch ($column['coltype']) {
-                    case 'int':
-                        $code .= "\t\t->gen('when always set {$name}.value=random(1,100,1,10,10)')\n";
-                        break;
-                    case 'decimal':
-                        $code .= "\t\t->gen('when always set {$name}.value=random(1,100,0.1,10,10)')\n";
-                        break;
-                    case 'datetime':
-                        $code .= "\t\t->gen('when always set {$name}.speed=random(3600,86400)')\n";
-                        break;
-                    case 'string':
-                        $code .= "\t\t->gen('when always set {$name}.value=random(0,{$size})')\n";
-                        break;
-                    case 'nothing':
-                        break;
-                    default:
-                        $code .= "\t\t// {$name} not defined for type {$column['coltype']}\n";
-                        break;
-                }
-            }
-        }
-        $colShow = rtrim($colShow, ','); // we remove the last ","
-        $code .= "\t\t->setInsert(true)\n";
-        $code .= "\t\t->showTable([$colShow],true)\n";
-        $code .= "\t\t->run(true);\n";
-        return $code;
+        return $codePHP;
     }
 
     /**
@@ -1495,7 +1650,7 @@ class ChaosMachineOne
     /**
      * @param string $dateString 2012-01-18 11:45:00
      *
-     * @return false|int
+     * @return false
      */
     public function date($dateString)
     {
@@ -1602,9 +1757,9 @@ class ChaosMachineOne
         return (exp($idxDelta / $scale)) + $startY;
     }
 
-    public function sin($startX, $startY, $speed = 1, $scale = 1)
+    public function sin($startX, $startY, $speed = 1, $scale = 1, $angle = null)
     {
-        $idx = $this->dictionary['_index']; // 10
+        $idx = $angle === null ? $this->dictionary['_index'] : $angle;
         $idxDelta = $idx - $startX; // 10-0 = 10
         return (sin($idxDelta * 0.01745329251 * $speed) * $scale) + $startY;
     }
@@ -1683,12 +1838,11 @@ class ChaosMachineOne
                     break;
                 }
             }
-            $format = $this->formats[$formatName][$idx];
         } else {
             $c = count($this->formats[$formatName]);
             $idx = mt_rand(0, $c - 1);
-            $format = $this->formats[$formatName][$idx];
         }
+        $format = $this->formats[$formatName][$idx];
         return $this->parseFormat($format);
     }
 
@@ -1908,7 +2062,7 @@ class ChaosMachineOne
     {
         $c = count($args);
         $m = $c / 2;
-        $sum = 0;
+        $sum = 0; // sum of all probs.
 
         for ($i = $m; $i < $c; $i++) {
             $sum += $args[$i];
@@ -1970,7 +2124,8 @@ class ChaosMachineOne
         $paragraph = false,
         $nWordMin = 20,
         $nWordMax = 40
-    ) {
+    )
+    {
         if ($arrayName === '') {
             $array = $this->_loremIpsumArray();
         } else {
@@ -2166,45 +2321,64 @@ class ChaosMachineOne
      * <b>Example:</b><br>
      * <pre>
      * $this->random(0,100); // a random value that returns an integer
-     * $this->random(0,100,0.1); // a random value that returns an decimal (1 decimal)
-     * $this->random(0,100,1,80,20); // more chances to obtain a small number
-     * $this->random(0,100,1,1,3,1); // a bell
+     * $this->random(0,100,0.1); // a random value that returns a decimal (1 decimal)
+     * $this->random(0,100,1,80,20); // an 80% chance of 0..50, a 20% chance of 51..100
+     * $this->random(0,100,1,80,"fakebell"); // probability name
+     * $this->random(0,100,1,1,3,1); // a bell, 1 chance of 0..33, 3 chances of 33..66, 1 chance of 66..100
+     * $this->random(0,100,1,1,3,4,2,1); // a bell inclided to the left
      * </pre>
      *
-     * @param int|double $from  initial number
-     * @param int|double $to    final number
-     * @param int|double $jump  jumps between values. If we want decimal numbers, then use 0.1
-     * @param int|null   $prob0 (optional) Probability of the first 1/3
-     * @param int|null   $prob1 (optional) Probability of the second 1/3
-     * @param int|null   $prob2 (optional) Probability of the third 1/3
-     *
-     * @return float|int|string
+     * @param int|double $from initial number
+     * @param int|double $to   final number
+     * @param int|double $jump jumps between values. If we want decimal numbers, then use 0.1
+     * @param array      ...$probs (optional) Probability of the "n" segment, it could be a value or a name of a
+     *                               probability<br>
+     *                               If the probability is named, then the other values are ignored
+     * @return float|int
      */
-    public function random($from, $to, $jump = 1, $prob0 = null, $prob1 = null, $prob2 = null)
+    public function random($from, $to, $jump = 1, ...$probs)
     {
-        $segment = $this->getRandomSegment($prob0, $prob1, $prob2);
+        $prob0=isset($probs[0]) ? $probs[0] : null;
+        if(is_array($prob0)) {
+            $probs=$prob0;  // is an array that contains an array
+            $prob0=$probs[0];
+        }
+        if (is_string($prob0) && isset($this->probTypes[$prob0])) {
+            // prob is a named probability.
+            /** @noinspection CallableParameterUseCaseInTypeContextInspection */
+
+            $probs = $this->probTypes[$prob0];
+        }
+        $segment = $this->getRandomSegment($probs);
         if ($segment === null) {
             $r = mt_rand($from / $jump, $to / $jump) * $jump;
         } else {
-            $numSegment = 1;
-            if ($prob2 !== null) {
-                $numSegment = 3;
-            } elseif ($prob1 !== null) {
-                $numSegment = 2;
-            }
-            $delta = ($to - $from) / $numSegment; // 12-24 12(delta=4) = 0+12..3+12 ,4+12..7+12,8+12..12+12
-
+            /**
+             * example: 1,12,1 ,1,2,3
+             * numsgegments=3
+             * delta = 1+12-1 /3  = 4 every segments uses the 40% of the space.
+             *         segment 1= 1 ---> 5
+             *         segment 2 = 5----> 8
+             *         segment 3 = 9 ---> 12
+             */
+            $numSegment=count($probs);
+            $delta = (1+$to - $from) / $numSegment; // 12-24 12(delta=4) = 0+12..3+12 ,4+12..7+12,8+12..12+12
             $init = $segment * $delta + $from;
-            $end = ($segment + 1) * $delta + $from;
+            $end = ($segment + 1) * $delta + $from - $jump;
+            //echo "$segment $init $end<br>";
 
             $r = mt_rand(round($init / $jump), round($end / $jump)) * $jump;
         }
         $this->pipeValue += $r;
         return $r;
     }
+    public static function randomStatic($from, $to, $jump = 1, ...$probs) {
+
+        return (new ChaosMachineOne())->random($from,$to,$jump,$probs);
+    }
 
     /**
-     * We have from 1 to 3 segments and we return one of them.<br>
+     * We return the number of segment to use (base 0) using a probabiliity<br>
      * <b>Example:</b><br>
      * <pre>
      * $this->getRandomSegment(10,20,30);
@@ -2213,26 +2387,42 @@ class ChaosMachineOne
      * </pre>
      *
      *
-     * @param null|int $prob0 The probability to obtain the first segment
-     * @param null|int $prob1 The probability to obtain the first segment
-     * @param null|int $prob2 The probability to obtain the first segment
-     *
-     * @return int|null It returns 0,1,2, or null if no segments.
-     *
+     * @param array ...$probs The probability to obtain the "n" segment
+     * @return int|null It returns 0,1,2,3 or the number of segment, or null if no segments.
      */
-    private function getRandomSegment($prob0 = null, $prob1 = null, $prob2 = null)
+    private function getRandomSegment(...$probs)
     {
-        if ($prob0 === null) {
+        $c=count($probs);
+        if($c===1 && is_array($probs[0])) {
+            $probs=$probs[0]; // expand.
+            $c=count($probs);
+        }
+        if ($c===0) {
             return null;
         }
-        $segment = mt_rand(0, $prob0 + $prob1 + $prob2);
-        if ($segment <= $prob0) {
-            return 0;
+        /**
+         * example: 1,2,3 (3 segments with 6 values)
+         * mt_rand(0,6)
+         * 0..0 = segment 1 (1 value)  segment<1
+         * 1..2 = segment 2 (2 values) segment<2+1
+         * 3..5 = segment 3 (3 values) segment<3+3
+         *
+         * example: 1,1,1 (3 segments with 3 values)
+         * mt_rand(0,2)
+         * 0..0 = segment 1 (1 value) init=0   segment<1+0
+         * 1..1 = segmnet 2 (1 value) init=1   segment<1+1
+         * 1..1 = segment 3 (1 value) init=2   segment<1+2
+         */
+        $total=array_sum($probs);
+        $segment = mt_rand(0, $total-1);
+        $init=0;
+        foreach($probs as $key=>$prob) {
+            if ($segment < $prob+$init) {
+                return $key;
+            }
+            $init+=$prob;
         }
-        if ($segment <= $prob0 + $prob1) {
-            return 1;
-        }
-        return 2;
+        return count($probs)-1;
     }
 
     public function endPipe()
