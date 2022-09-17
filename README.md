@@ -6,7 +6,6 @@ A controlled random generator data for PHP. The objective of the library is to h
 [![Total Downloads](https://poser.pugx.org/eftec/chaosmachineone/downloads)](https://packagist.org/packages/eftec/chaosmachineone)
 [![Maintenance](https://img.shields.io/maintenance/yes/2022.svg)]()
 [![composer](https://img.shields.io/badge/composer-%3E1.6-blue.svg)]()
-[![php](https://img.shields.io/badge/php->5.6-green.svg)]()
 [![php](https://img.shields.io/badge/php-7.x-green.svg)]()
 [![CocoaPods](https://img.shields.io/badge/docs-70%25-yellow.svg)]()
 
@@ -66,7 +65,7 @@ If we generate random values, the chart would look like
 
 Why is it so random? it is because they are random values (sic).  
 
-So, they are right but they don't looks real because there is not a trend or a natural flow of information, it is just static noise.
+So, they are right, but they don't look real because there is not a trend or a natural flow of information, it is just static noise.
 
 Then, let's generate the same value with a sine (for example, let's say that there is a cycle of sales)
 
@@ -74,14 +73,14 @@ Then, let's generate the same value with a sine (for example, let's say that the
 
 ![random](docs/sin1030.jpg)
 
-The chart has a trend but it is too predictable.  So, let's add all factors.
+The chart has a trend, but it is too predictable.  So, let's add all factors.
 
 
 > ->gen('when _index<200 then idtable.value=random(-10,10,0.2) and idtable.add=sin(0,0,10,30)')
 
 ![random](docs/randomsin.jpg)
 
-While this chart is far from real, but it is not TOO RANDOM and it has a trend.
+While this chart is far from real, but it is not TOO RANDOM, and it has a trend.
 
 ## fields
 
@@ -116,7 +115,7 @@ $this->gen('when _index<100 then idtable.accel=-1'); // the acceleration is -1 u
 
 It generates a value using the Minilang syntaxis.
 
-The syntaxis is as follow:
+The syntaxis is as follows:
 
 ```
 when logic and/or logic2 and/or logic3 then setvalue1 , setvalue2 , setvalue3
@@ -144,13 +143,13 @@ when logic and/or logic2 and/or logic3 then setvalue1 , setvalue2 , setvalue3
 | on            | 1                                                                            |
 | off           | 0                                                                            |
 | undef         | -1 (for undefined)                                                           |
-| flip          | (special value). It inverts a value ON<->OFF<br>Used as value.flip                                 |
+| flip          | (special value). It inverts a value ON<->OFF<br>Used as value.flip           |
 | now           | returns the current timestamp (integer)                                      |
 | timer         | returns the current timestamp (integer)                                      |
 | interval      | returns the interval (in seconds) between the last change and now            |
 | fullinterval  | returns the interval (in seconds) between the start of the process and   now |
-| _index  | returns the current index (the current counter of row) |
-| always  | reserved word. It is used as "when always" |
+| _index        | returns the current index (the current counter of row)                       |
+| always        | reserved word. It is used as "when always"                                   |
 
 Examples:
 
@@ -172,7 +171,7 @@ Limits.
 
 ### Logic
 
-It sets the condition(s) separated by **and** or **or**
+It sets the condition(s) separated by **"and"** or **"or"**
 
 > It is not allowed to use more than operator for logic.  a1=20+30 is not allowed.
 
@@ -222,7 +221,7 @@ It generates a sinusoid values. The angle
 * startX is the position of the X
 * startY is the position of the Y (you can move up and down the values)
 * Speed is the speed of the angle.
-  * For example sin(0,0,1,1), every _index value counts as an degree.
+  * For example sin(0,0,1,1), every _index value counts as a degree.
   * For example sin(0,0,2,1), every _index value counts as x2 degree.
 * scale is the scale (Y) of the chart.
 * angle, if it is not set then it is calculated with the current index x the speed (in degree). If not, then it is used to determine the angle of the sine value
@@ -334,7 +333,7 @@ Optionally, you could add a probability for each segment.
 
 * There is a 10% probability the random value is between 0 and 33
 * There is a 20% probability the random value is between 34 and 66
-* There is a 70% probability the random value is between 67 to 100
+* There is a 70% probability the random value is between 67 and 100
 
 > idtable.value=random(0,200,1,80,10,10)   // values trends to stay at the bottom
 
@@ -353,7 +352,7 @@ Optionally, you could add a probability for each segment.
 You can also use the next name of values
 
 | name      | values equivalents   |
-| --------- | -------------------- |
+|-----------|----------------------|
 | fakebell  | [10, 25, 30, 25, 10] |
 | fakebell2 | [15, 22, 26, 22, 15] |
 | fakebell3 | [5, 15, 60, 15, 5]   |
@@ -437,7 +436,7 @@ $this->gen('when always set var1=var2.getvalue');
 
 ### field.valueabs
 
-It transform the value of a field to absolute (always positive)
+It transforms the value of a field to absolute (always positive)
 
 
 
@@ -531,14 +530,17 @@ $this->setArray('arrayname',['a','b','c']) // it sets an array with 3 values wit
 ```
 
 ```php
-$this->setArray('arrayname',['a'=>80,'b'=>10,'c'=>10]) // it sets an array with 3 values with the changes of a(80%),b(10%) and c(10%)
+$this->setArray('arrayname',['a'=>80,'b'=>10,'c'=>10]) // it sets an array with 3 values with the changes 
+                                                       // of a(80%),b(10%) and c(10%)
 ```
 
-> Note: arrays and variables share the same space of memory, so if we have a variable and array with the same value, then one of them will be override.
+> Note: arrays and variables share the same space of memory, so if we have a variable and array with the same value, 
+then one of them will be overridden.
 
 ### randomarray("arrayname",'field'=null)
 
-it returns a random row inside of the array declared with setArray(). If the array is associative then it returns a value according it's probability.
+it returns a random row inside the array declared with setArray(). If the array is associative then it returns a value
+according its probability.
 
 If the array is a list of objects, then it returns the value of the field.
 
@@ -563,7 +565,7 @@ It sets a format (template) to merge different arrays.
 
 The arrays are marked as **{{name-of-the-array}}**. If the array is not defined then it returns the value of a field.
 
-If the array is associative then it returns a value according it's probability.
+If the array is associative then it returns a value according its probability.
 
 ```php
 $this->setFormat('maleNameFormats',['{{namearr}} {{lastnamearr}}','Dr.{{namearr}} {{lastnamearr}}'])
@@ -667,7 +669,7 @@ $this->gen('when counter>20 and counter<30 then omit()'); // values where counte
 
 ### arrayFromFolder()
 
-It reads a folder and returns an array of files. The reading is not recursive and it could be filtered by extension.
+It reads a folder and returns an array of files. The reading is not recursive, and it could be filtered by extension.
 
 > $filesWithoutExtension=$chaos->arrayFromFolder($localfolder,'jpg',false);
 
@@ -710,9 +712,10 @@ If you are using a database, then table is used to determine where the values wi
 If you are not using a database, then table is only for reference.
 
 * $table = it is the name of the table
-* $conditions (int) = It could indicates the number of rows to generate.
+* $conditions (int) = It could indicate the number of rows to generate.
 * $conditions (array) = It indicates the values to iterates.
-* $conditions (string) = it indicates the table (or query) to use as "origin" of values. You can use a inner join of queries but the query must returns unique columns.
+* $conditions (string) = it indicates the table (or query) to use as "origin" of values. You can use 
+an inner join of queries but the query must returns unique columns.
 * $prefix (string) = it sets a prefix value.
 
 ```php
@@ -754,7 +757,7 @@ Insert random values into the database.
 
 > **Note: This method is deprecated. Use instead setInsert()**
 
-* **$storecache** : if true then it inserts a value and it stores its value into memory.
+* **$storecache** : if true then it inserts a value, and it stores its value into memory.
 * **$echoProgress** : (printf format) if it is not empty then it shows the progress (echo)
 * $continueOnError = if true then it continues if insert fails.
 * $maxRetry = number of retries (if insert fails)
@@ -898,6 +901,8 @@ $chaos->table('table1', 'table1') // the first table is used for insert, since w
 ```
 
 ## version
+* 1.13
+  * Type hinting for the code. 
 * 1.12 2022-01-03
   * added random seed to the constructor. By default, the random seed is generated using the microseconds of the processor.
   * fixed the precision of some operations
@@ -921,10 +926,10 @@ $chaos->table('table1', 'table1') // the first table is used for insert, since w
 * 1.4 We could run ->insert(true)->show() at the same time. Insert(true) will keep the values (so we could show it without recalculating)
 * 1.3 Now it could copy files.
   New method arrayFromFolder() reads all files of a folder.  
-  Script method field.copyfilefrom=origin copies from from an origin (array of files)    
+  Script method field.copyfilefrom=origin copies from an origin (array of files)    
   And now randommask (?) wildcard works with array and formats.
 * 1.2 Some cleanup.
-* 1.1 Now Minilib is a external library
+* 1.1 Now Minilib is an external library
 * 1.0 First open source version
 
 ## License

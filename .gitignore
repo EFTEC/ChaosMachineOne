@@ -1,8 +1,10 @@
 /.idea
 composer.lock
 vendor/
-Docs/
+docs/
 tests/resources/compiled/
+exercise/
+
 
 
 
