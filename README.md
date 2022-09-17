@@ -1,5 +1,6 @@
 # ChaosMachineOne for PHP
-A controlled random generator data for PHP. The objective of the library is to help generate and fill random values to Mysql, Sql Server and Oracle with some tendencies/biases so the values are not as random for to be usable.
+A controlled random generator data for PHP. The objective of the library is to help generate and fill random values to 
+memory, Mysql, Sql Server and Oracle while we could add some tendencies/biases so the values are not as fully random.
 
 [![Build Status](https://travis-ci.org/EFTEC/ChaosMachineOne.svg?branch=master)](https://travis-ci.org/EFTEC/ChaosMachineOne)
 [![Packagist](https://img.shields.io/packagist/v/eftec/ChaosMachineOne.svg)](https://packagist.org/packages/eftec/chaosmachineone)
@@ -9,47 +10,72 @@ A controlled random generator data for PHP. The objective of the library is to h
 [![php](https://img.shields.io/badge/php-7.x-green.svg)]()
 [![CocoaPods](https://img.shields.io/badge/docs-70%25-yellow.svg)]()
 
+# Table of contents
 
 - [ChaosMachineOne for PHP](#chaosmachineone-for-php)
-  * [What is the objective?](#what-is-the-objective-)
-  * [fields](#fields)
-  * [gen](#gen)
-    + [minilang](#minilang)
-    + [Logic](#logic)
-  * [Range Functions (numbers)](#range-functions--numbers-)
-    + [ramp($fromX, $toX, $fromY, $toY)](#ramp--fromx---tox---fromy---toy-)
-    + [log($startX,$startY,$scale=1)](#log--startx--starty--scale-1-)
-    + [exp($startX,$startY,$scale=1)](#exp--startx--starty--scale-1-)
-    + [sin($startX,$startY,$speed=1,$scale=1)](#sin--startx--starty--speed-1--scale-1-)
-    + [atan($centerX,$startY,$speed=1,$scale=1)](#atan--centerx--starty--speed-1--scale-1-)
-    + [parabola($centerX,$startY,$scaleA=1,$scaleB=1,$scale=1)](#parabola--centerx--starty--scalea-1--scaleb-1--scale-1-)
-    + [bell($centerX, $startY, $sigma=1, $scaleY=1)](#bell--centerx---starty---sigma-1---scaley-1-)
-  * [Fixed functions (numbers)](#fixed-functions--numbers-)
-    + [randomprop(...$args)](#randomprop--args-)
-    + [random($from,$to,$jump=1,$prob0=null,$prob1=null,$prob2=null)](#random--from--to--jump-1--prob0-null--prob1-null--prob2-null-)
-    + [field.speed=xxxx](#fieldspeed-xxxx)
-    + [field.accel=xxxx](#fieldaccel-xxxx)
-    + [field.value=xxxx](#fieldvalue-xxxx)
-    + [field.getvalue](#fieldgetvalue)
-    + [field.valueabs](#fieldvalueabs)
-    + [field.day , field.month , field.year, field.hour, field.minute, field.weekday](#fieldday---fieldmonth---fieldyear--fieldhour--fieldminute--fieldweekday)
-    + [field.stop=xxxx](#fieldstop-xxxx)
-    + [field.add=xxxx](#fieldadd-xxxx)
-    + [field.skip=xxx](#fieldskip-xxx)
-  * [Arrays and texts](#arrays-and-texts)
-    + [->setArray('arrayname',[])](#--setarray--arrayname-----)
-    + [->setFormat('formatName',[])](#--setformat--formatname-----)
-    + [randomarray("arrayname",'field'=null)](#randomarray--arrayname---field--null-)
-    + [randomtext($starting,$arrayName,$paragraph,$wordMinimum,$wordMaximum)](#randomtext--starting--arrayname--paragraph--wordminimum--wordmaximum-)
-    + [randomformat($nameFormat)](#randomformat--nameformat-)
-  * [version](#version)
-
+  - [What is the objective?](#what-is-the-objective)
+  - [fields](#fields)
+  - [gen](#gen)
+    - [minilang](#minilang)
+    - [Reserved variables](#reserved-variables)
+    - [Logic](#logic)
+  - [Range Functions (numbers)](#range-functions-numbers)
+    - [ramp($fromX, $toX, $fromY, $toY)](#rampfromx-tox-fromy-toy)
+    - [log($startX,$startY,$scale=1)](#logstartxstartyscale1)
+    - [exp($startX,$startY,$scale=1)](#expstartxstartyscale1)
+    - [sin($startX,$startY,$speed=1,$scale=1,$angle=null)](#sinstartxstartyspeed1scale1anglenull)
+    - [atan($centerX,$startY,$speed=1,$scale=1)](#atancenterxstartyspeed1scale1)
+    - [parabola($centerX,$startY,$scaleA=1,$scaleB=1,$scale=1)](#parabolacenterxstartyscalea1scaleb1scale1)
+    - [bell($centerX, $startY, $sigma=1, $scaleY=1)](#bellcenterx-starty-sigma1-scaley1)
+  - [Fixed functions (numbers)](#fixed-functions-numbers)
+    - [randomprop(...$args)](#randompropargs)
+    - [random($from,$to,$jump=1,...$probs)](#randomfromtojump1probs)
+    - [field.speed=xxxx](#fieldspeedxxxx)
+    - [field.accel=xxxx](#fieldaccelxxxx)
+    - [field.value=xxxx](#fieldvaluexxxx)
+    - [field.getvalue](#fieldgetvalue)
+    - [field.valueabs](#fieldvalueabs)
+    - [field.day , field.month , field.year, field.hour, field.minute, field.weekday](#fieldday--fieldmonth--fieldyear-fieldhour-fieldminute-fieldweekday)
+    - [field.stop=xxxx](#fieldstopxxxx)
+    - [field.add=xxxx](#fieldaddxxxx)
+    - [field.concat=xxxx](#fieldconcatxxxx)
+    - [field.skip=xxx](#fieldskipxxx)
+  - [Arrays and texts](#arrays-and-texts)
+    - [->setArray('arrayname',[])](#-setarrayarrayname)
+    - [randomarray("arrayname",'field'=null)](#randomarrayarraynamefieldnull)
+    - [->setFormat('formatName',[])](#-setformatformatname)
+    - [randomformat($nameFormat)](#randomformatnameformat)
+    - [randomtext($starting,$arrayName,$paragraph,$wordMinimum,$wordMaximum)](#randomtextstartingarraynameparagraphwordminimumwordmaximum)
+    - [randommask($mask,$arrayName='')](#randommaskmaskarrayname)
+  - [Other Features](#other-features)
+    - [end](#end)
+    - [omit](#omit)
+  - [File features](#file-features)
+    - [arrayFromFolder()](#arrayfromfolder)
+    - [Script function destionationArray.copyfilefrom()=originArray.getvalue](#script-function-destionationarraycopyfilefromoriginarraygetvalue)
+  - [Database](#database)
+    - [table($table, $conditions,$prefix='origin_')](#tabletable-conditionsprefixorigin_)
+    - [update($table,$indexcolumn,$indexvalue,$updatecolumn1,$updatevalue1...)](#updatetableindexcolumnindexvalueupdatecolumn1updatevalue1)
+    - [insert($storeCache=false,$echoProgress=null,$continueOnError=false,$maxRetry=3)](#insertstorecachefalseechoprogressnullcontinueonerrorfalsemaxretry3)
+    - [setInsert($continueOnError=false,$maxRetry=3)](#setinsertcontinueonerrorfalsemaxretry3)
+    - [setArrayFromDBQuery($name,$query,$probability=[1],$queryParam=null)](#setarrayfromdbquerynamequeryprobability1queryparamnull)
+    - [setArrayFromDBTable($name,$table,$column,$probability=[1])](#setarrayfromdbtablenametablecolumnprobability1)
+- [Examples:](#examples)
+  - [Connect to Sql Server](#connect-to-sql-server)
+  - [Connect to Mysql](#connect-to-mysql)
+  - [Generate code based in a table](#generate-code-based-in-a-table)
+  - [Insert 1000 random values](#insert-1000-random-values)
+  - [Update all rows of a table](#update-all-rows-of-a-table)
+  - [version](#version)
+  - [License](#license)
 
 ## What is the objective?
 
-Sometimes we want to generate fake values for the database that are controlled and  consistent. So, this library tries to create an ordered chaos.
+Sometimes we want to generate fake values for the database that are controlled and  consistent. So, this library tries 
+to create an ordered chaos.
 
-While there are libraries to generate random values (such as fzaninotto/Faker), the objective of this library is to fill tables with random but credible/with a trend value.
+While there are libraries to generate random values (such as fzaninotto/Faker), the objective of this library is to fill
+tables with random but credible/with a trend value.
 
 
 
@@ -99,10 +125,12 @@ fields are our values. They could be numeric, date and string.
 
 
 Examples:
-> "set field.value=20" // it sets the value of the field to 20   
-> "set field.speed=3" // it sets the speed of the field by 3. The field increases the value every cycle by 3    
-> "set field.accel=1" // it sets the acceleration of the field by 1. The field increases the speed every cycle by 1    
-> "set field.value=30 and field.speed=1" // the value is always 30, no matter the speed
+```
+"set field.value=20" // it sets the value of the field to 20   
+"set field.speed=3" // it sets the speed of the field by 3. The field increases the value every cycle by 3    
+"set field.accel=1" // it sets the acceleration of the field by 1. The field increases the speed every cycle by 1    
+"set field.value=30 and field.speed=1" // the value is always 30, no matter the speed
+```
 
 ```php
 $this->gen('when _index<40 then idtable.accel=1'); // the acceleration is 1 until index=40
@@ -901,8 +929,11 @@ $chaos->table('table1', 'table1') // the first table is used for insert, since w
 ```
 
 ## version
-* 1.13
-  * Type hinting for the code. 
+* 1.13 2022-09-17
+  * Added type hinting for the code.
+  * Cleaned the code.
+  * Updated requirements. Now, this library requires PHP 7.2 and higher.
+  * Updated library dependencies.
 * 1.12 2022-01-03
   * added random seed to the constructor. By default, the random seed is generated using the microseconds of the processor.
   * fixed the precision of some operations

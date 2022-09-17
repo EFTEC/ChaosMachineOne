@@ -21,7 +21,7 @@ use RuntimeException;
  *
  * @package  eftec\chaosmachineone
  * @author   Jorge Patricio Castro Castillo <jcastro arroba eftec dot cl>
- * @version  1.10 2021-06-28
+ * @version  1.13 2021-09-17
  * @link     https://github.com/EFTEC/ChaosMachineOne
  * @license  LGPL v3 (or commercial if it's licensed)
  */
